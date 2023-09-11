@@ -14,19 +14,11 @@
 # include <sys/stat.h>
 # include <sys/wait.h>
 # include <string.h>
+# include "Request.hpp"
 
 typedef std::map<std::string, Config>		sCMap;
 typedef std::map<std::string, std::string>	sSMap;
 typedef std::vector<struct pollfd>			pVec;
-
-typedef	enum {
-	GET,
-	POST,
-	DELETE,
-	HEAD,
-	PUT,
-	ERROR,
-}	requests;
 
 class Server {
 	private:
@@ -34,11 +26,12 @@ class Server {
 		Config	_config;
 		sCMap	_locationMap;
 		sSMap	_requestMap;
+		std::string	_buffer;
 
 		Server();
 
 		void	newConnection(void);
-		void	handleClient(int i);
+		int		handleClient(int i);
 		bool	checkRequest(int fd, Config &location);
 		void	parseRequest(std::string request);
 		void	handleRequest(int fd, Config &location);

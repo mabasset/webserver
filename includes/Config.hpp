@@ -51,7 +51,7 @@ class Config {
 
 	public:
 		std::string	_location_name;
-		
+
 		Config(void);
 		Config(std::string &serverBody);
 		Config(std::string &locationBody, Config &mainConfig);

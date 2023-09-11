@@ -1,13 +1,18 @@
 #include "../includes/Server.hpp"
 
 bool	Server::checkRequest(int fd, Config &location) {
+	//assegan a un config il valore della mappa /
 	location = _locationMap["/"];
-	location._location_name = "/";
-	std::string temp_request = _requestMap["URI"];
+	location._location_name = "/"; //assegan il nome
+	std::string temp_request = _requestMap["URI"]; //variabile tem con il path
+	// se non trova la mappa richiesta entra
 	if (_locationMap.count(temp_request) == 0) {
+		//per ognie mappa
 		for (sCMap::iterator it = _locationMap.begin(); it != _locationMap.end(); it++) {
+			//se la prima e' / continua
 			if (it->first == "/")
 				continue ;
+				// 
 			if (temp_request.find(it->first.c_str(), 0, it->first.length()) == 0) {
 				location = _locationMap[it->first];
 				location._location_name = it->first;
@@ -49,50 +54,6 @@ bool	Server::checkRequest(int fd, Config &location) {
 		return false;
 	}
 	return true;
-}
-
-void	Server::parseRequest(std::string request) {
-	std::size_t first = 0;
-	std::size_t i = 0;
-
-	const char *prova = request.c_str();
-	std::string line;
-
-	while (prova[i] != '\0') {
-		if ((prova[i] == '\r' && prova[i + 1] == '\n') || prova[i] == 4){
-			line = request.substr(first, i - first);
-			std::size_t space = line.find(' ', 0);
-			std::size_t space2 = line.find(' ', space + 1);
-			_requestMap.insert(std::make_pair("HTTP_method", line.substr(0, space)));
-			_requestMap.insert(std::make_pair("URI", line.substr(space + 1, space2 - space - 1)));
-			_requestMap.insert(std::make_pair("protocol_version", line.substr(space2 + 1, line.length())));
-			if (prova[i] != 4)
-				i++;
-			first = i + 1;
-			break ;
-		}
-		i++;
-	}
-	size_t fine = request.rfind("\r\n\r\n");
-	if (fine != std::string::npos) {
-		std::cout<<"ultima "<< request.substr(fine+4)<<std::endl;
-		_requestMap.insert(std::make_pair("Last", request.substr(fine+4)));
-	}
-	while (prova[i] != '\0') {
-		if ((prova[i] == '\r' && prova[i + 1] == '\n') || prova[i] == 4){
-			
-			line = request.substr(first, i - first);
-			if (prova[i] != 4)
-				i++;
-			first = i + 1;
-		std::size_t mid = line.find(':', 0);
-		if (mid != std::string::npos && line[mid] == ':' && line[mid + 1] == ' ')
-			_requestMap.insert(std::make_pair(line.substr(0, mid), line.substr(mid + 2 , line.length())));
-		else
-			_requestMap.insert(std::make_pair(line.substr(0, line.length()), ""));
-		}
-		i++;
-	}
 }
 
 void Server::handleRequest(int fd, Config &location) {

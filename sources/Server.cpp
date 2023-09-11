@@ -43,9 +43,11 @@ void	Server::makePoll(void) {
 				newConnection();
 			else
 			{
-				handleClient(std::distance(_pfds.begin(), it));
-				close(it->fd);
-				_pfds.erase(it);
+				if (handleClient(std::distance(_pfds.begin(), it)))
+				{
+					close(it->fd);
+					_pfds.erase(it);
+				}
 			}
 			it = _pfds.begin();
 		}
@@ -67,24 +69,30 @@ void	Server::newConnection(void) {
 	_pfds.push_back(socket);
 }
 
-void	Server::handleClient(int i) {
-	std::string	request;
+int	Server::handleClient(int i) {
+	// std::string	request;
+	// char		c;
+
+	// while (request.find("\r\n\r\n") == std::string::npos)
+	// {
+	// 	if (recv(_pfds[i].fd, &c, 1, 0) < 1)
+	// 		throw std::runtime_error("recv error");
+	// 	request += c;
+	// }
 	char		c;
 
-	while (request.find("\r\n\r\n") == std::string::npos)
-	{
-		if (recv(_pfds[i].fd, &c, 1, 0) < 1)
-			throw std::runtime_error("recv error");
-		request += c;
-	}
-	std::cout << request << std::endl;
-	this->parseRequest(request);
-	if (_requestMap["URI"] != "/favicon.ico")
-		std::cout << request << std::endl;
+	if (recv(_pfds[i].fd, &c, 1, 0) < 1)
+		throw std::runtime_error("recv error");
+	_buffer += c;
+	if (_buffer.find("\r\n\r\n") == std::string::npos)
+		return 0;
+	std::cout << _buffer << std::endl;
+	Request request(_buffer);
 	Config location;
 	if (this->checkRequest(_pfds[i].fd, location))
 		handleRequest(_pfds[i].fd, location);
 	_requestMap.clear();
+	return 1;
 }
 
 void	Server::displayServerConfig(void) {
