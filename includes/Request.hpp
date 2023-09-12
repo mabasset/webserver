@@ -3,38 +3,36 @@
 
 # include "Server.hpp"
 
-typedef	std::map<std::string, std::string> sSMap;
-
-typedef enum	_method {
+enum Method {
 	GET,
 	POST,
 	DELETE,
 	HEAD,
 	PUT,
-}				 Method;
+};
 
 class Request {
 
 	private:
-		Method		_method;
+		enum Method	_method;
 		std::string _uri;
-		sSMap       _headers;
+		sSMap		_headers;
 
 		Request(void);
 
 	public:
-		Request(const std::string all);
+		Request(std::string &all);
 		~Request(void);
 
-		void display( void );
+		void display( void ) const;
 
-		Method		getMethod( void );
-		std::string	getUri( void );
-		sSMap		getHeaders( void );
+		Method		getMethod( void ) const;
+		std::string	getUri( void ) const;
+		sSMap		getHeaders( void ) const;
 
-		void	setMethod( Method method );
-		void	setUri( std::string uri );
-		void	getHeaders( sSMap headers );
+		void	setMethod( const Method &method );
+		void	setUri( const std::string &uri );
+		void	setHeaders( const sSMap &headers );
 };
 
 #endif

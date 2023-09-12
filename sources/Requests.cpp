@@ -1,60 +1,75 @@
 #include "../includes/Server.hpp"
 
-bool	Server::checkRequest(int fd, Config &location) {
-	//assegan a un config il valore della mappa /
-	location = _locationMap["/"];
-	location._location_name = "/"; //assegan il nome
-	std::string temp_request = _requestMap["URI"]; //variabile tem con il path
-	// se non trova la mappa richiesta entra
-	if (_locationMap.count(temp_request) == 0) {
-		//per ognie mappa
-		for (sCMap::iterator it = _locationMap.begin(); it != _locationMap.end(); it++) {
-			//se la prima e' / continua
-			if (it->first == "/")
-				continue ;
-				// 
-			if (temp_request.find(it->first.c_str(), 0, it->first.length()) == 0) {
-				location = _locationMap[it->first];
-				location._location_name = it->first;
-			}
-		}
-		if (location._location_name == "/") {
-			for (sCMap::iterator it = _locationMap.begin(); it != _locationMap.end(); it++) {
-				std::cout<<"try_location: "<< it->first << std::endl;
-				if (it->first.at(0) == '~' && it->first.size() >= 3 && it->first.at(1) == ' ' && it->first.find_first_not_of(' ', 1) != std::string::npos) {
-					std::string end = it->first.substr(it->first.find_first_not_of(' ', 1));
-					std::cout<<"end: "<< end<<std::endl;
-					if (this->checkExtensionCgi(end, location) && temp_request.size() >= end.size() && temp_request.substr(temp_request.size() - end.size() - 1) == end) {
-						location = _locationMap[it->first];
-						location._location_name = it->first;
-						break ;
-					}
-				}
-			}
-		}
-	}
-		/*size_t pos = temp_request.size();
-		while ((pos = temp_request.rfind('/', pos)) != std::string::npos){
-			temp_request.resize(pos);
-			if (_locationMap.count(temp_request) > 0) {
-				location = _locationMap[temp_request];
-				location._location_name = temp_request;
-				break ;
-			}
-		}
-	}*/
-	else {
-		location = _locationMap[temp_request];
-		location._location_name = temp_request;
-	}
-	sBMap alllowed_methods = location.getAllowedMethods();
-	if (alllowed_methods[_requestMap["HTTP_method"]] == false) {
-		std::cout<< "esco qua"<<std::endl;
-		default_error_answer(405, fd, location);
-		return false;
-	}
-	return true;
-}
+// bool	Server::checkRequest(int fd, Config &location) {
+// 	//assegan a un oggetto config il valore della mappa /
+// 	location = _locationMap["/"];
+// 	location._location_name = "/"; //assegan il nome
+// 	std::string temp_request = _requestMap["URI"]; //salva il pat della richiesta
+// 	// se non trova il path della richiesta entra
+// 	if (_locationMap.count(temp_request) == 0) {
+// 		//per ognie mappa
+// 		for (sCMap::iterator it = _locationMap.begin(); it != _locationMap.end(); it++) {
+// 			//se la prima e' / continua
+// 			if (it->first == "/")
+// 				continue ;
+// 				// se il pat della richiesta e' uguale path del iteratore entra
+// 			if (temp_request.find(it->first.c_str(), 0, it->first.length()) == 0) {
+// 				location = _locationMap[it->first]; //imposta la location uguale al valore associato alla key del iteratore
+// 				location._location_name = it->first; //imposta il nome in location uguale alla key del iterarore
+// 			}
+// 		}
+// 		// se la location e' root entra
+// 		if (location._location_name == "/") {
+// 			//per ogni elemonto nella mappa _locationMap
+// 			for (sCMap::iterator it = _locationMap.begin(); it != _locationMap.end(); it++) {
+// 				std::cout<<"try_location: "<< it->first << std::endl; //stampa un messaggio
+// 				//se il primo argomento e' - e la lungezza della key e' >= 3 e il secondo carattere della key e' spazio e il terzo carattere non e' spazio entra
+// 				if (it->first.at(0) == '~' && it->first.size() >= 3 && it->first.at(1) == ' ' && it->first.find_first_not_of(' ', 1) != std::string::npos) {
+// 					std::string end = it->first.substr(it->first.find_first_not_of(' ', 1)); //copio dalla seconda parola
+// 					std::cout<<"end: "<< end<<std::endl; //stampo quello che trovo
+// 					//se riesce a stampare tutti gli elementi del estensione cgi e la lungezza della richiesta e' >= della seconda parola della location e la prima parola dlla richiesta temporanea e' uguale alla seconda parola della location entra
+// 					if (this->checkExtensionCgi(end, location) && temp_request.size() >= end.size() && temp_request.substr(temp_request.size() - end.size() - 1) == end) {
+// 						location = _locationMap[it->first]; // assegna alla classe config di nome location il valore associato alla key del iteratore che abbiamo trovato
+// 						location._location_name = it->first; // imposta il valore nomelocaton come la key del iteratore trovato
+// 						break ; //fine del per
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 		/*size_t pos = temp_request.size();
+// 		while ((pos = temp_request.rfind('/', pos)) != std::string::npos){
+// 			temp_request.resize(pos);
+// 			if (_locationMap.count(temp_request) > 0) {
+// 				location = _locationMap[temp_request];
+// 				location._location_name = temp_request;
+// 				break ;
+// 			}
+// 		}
+// 	}*/
+// 	else {
+// 		location = _locationMap[temp_request]; //assegna alla classe config di nome location il valore associato alla key richiesta temporanea
+// 		location._location_name = temp_request; // imposta il valore nomelocaton come richiesta temporanea
+// 	}
+// 	sBMap alllowed_methods = location.getAllowedMethods(); //si fa una mappa metodi posibillli
+// 	// se il valore assoiato alla key che corrisponde al valore associato alla key http_metod che sta dentro la mappa della richiesta e falso entra
+// 	if (alllowed_methods[_requestMap["HTTP_method"]] == false) {
+// 		std::cout<< "esco qua"<<std::endl; //stampa qualcosa 
+// 		default_error_answer(405, fd, location); //esci l'errore
+// 		return false; //ritorna zero
+// 	}
+// 	return true; //ritorna 1
+// }
+
+// bool	Server::checkRequest(int fd, Config &location) {
+
+// 	std::strng URI = _request.getUri();
+// 	for (sCMap::iterator it = _locationMap.begin(); it != _locationMap.end(); it++) {
+		
+// 	}
+
+
+// }
 
 void Server::handleRequest(int fd, Config &location) {
 	std::string	methods[5] = {"GET", "POST", "DELETE", "HEAD", "PUT"};

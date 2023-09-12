@@ -1,7 +1,6 @@
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
-# include "Config.hpp"
 # include <iostream>
 # include <netinet/in.h>
 # include "unistd.h"
@@ -14,24 +13,27 @@
 # include <sys/stat.h>
 # include <sys/wait.h>
 # include <string.h>
-# include "Request.hpp"
+# include "Config.hpp"
 
 typedef std::map<std::string, Config>		sCMap;
 typedef std::map<std::string, std::string>	sSMap;
 typedef std::vector<struct pollfd>			pVec;
 
+# include "Request.hpp"
+# include "Response.hpp"
+
 class Server {
 	private:
-		pVec	_pfds;
-		Config	_config;
-		sCMap	_locationMap;
-		sSMap	_requestMap;
+
+		pVec		_pfds;
+		Config		_config;
+		sCMap		_locationMap;
 		std::string	_buffer;
 
 		Server();
 
 		void	newConnection(void);
-		int		handleClient(int i);
+		int		handleClient(int fd);
 		bool	checkRequest(int fd, Config &location);
 		void	parseRequest(std::string request);
 		void	handleRequest(int fd, Config &location);

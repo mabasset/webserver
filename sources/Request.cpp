@@ -1,6 +1,6 @@
 #include "../includes/Request.hpp"
 
-Request::Request(std::string all) {
+Request::Request(std::string &all) {
 
 	std::string	methods[] = { "GET", "POST", "DELETE", "HEAD", "PUT" };
 	size_t		pos;
@@ -32,40 +32,41 @@ Request::Request(std::string all) {
 	}
 }
 
-void	Request::display( void ) {
+void	Request::display( void ) const {
 
 	std::cout << "method: " << _method << std::endl;
 	std::cout << "uri: " << _uri << std::endl;
-	for (sSMap::iterator it = _headers.begin(); it != _headers.end(); it++)
+	sSMap tmp = _headers;
+	for (sSMap::iterator it = tmp.begin(); it != tmp.end(); it++)
 		std::cout << it->first << ": " << it->second << std::endl;
 }
 
-Method	Request::getMethod( void ) {
+Method	Request::getMethod( void ) const {
 
 	return _method;
 }
 
-std::string	Request::getUri( void ) {
+std::string	Request::getUri( void ) const {
 
 	return _uri;
 }
 
-sSMap	Request::getHeaders( void ) {
+sSMap	Request::getHeaders( void ) const {
 
 	return _headers;
 }
 
-void	Request::setMethod( Method method ) {
+void	Request::setMethod( const Method &method ) {
 
 	this->_method = method;
 }
 
-void	Request::setUri( std::string uri ) {
+void	Request::setUri( const std::string &uri ) {
 
 	this->_uri = uri;
 }
 
-void	Request::getHeaders( sSMap headers ) {
+void	Request::setHeaders( const sSMap &headers ) {
 
 	this->_headers = headers;
 }
