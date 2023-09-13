@@ -17,8 +17,9 @@ class Request;
 class Response {
 
 	private:
-		enum Status	_status;
-		sSMap		_headers;
+		enum Status		_status;
+		sSMap			_headers;
+		std::string		_body;
 
 		Response( void );
 
@@ -27,8 +28,9 @@ class Response {
 		Response(const Request &request, const sCMap &locationMap);
 		~Response( void );
 
-		void		send( const int fd ) const;
+		void		sendResponse( const int fd ) const;
 		enum Status detectStatus( const Request &request, const sCMap &locationMap );
+		std::string readFile( const Request &request, const Config &location);
 
 		enum Status getStatus( void ) const;
 		sSMap		getHaders( void) const;

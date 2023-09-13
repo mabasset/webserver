@@ -60,7 +60,6 @@ void	Server::newConnection(void) {
 	socklen_t				sin_size;
 
 	sin_size = sizeof(client_addr);
-	std::cout << _pfds.at(0).fd << std::endl;
 	new_fd = accept(_pfds.at(0).fd, (struct sockaddr *)&client_addr, &sin_size);
 	if (new_fd == -1)
 		throw std::runtime_error("Accept error");
@@ -81,7 +80,7 @@ int	Server::handleClient(int fd) {
 	std::cout << _buffer << std::endl;
 	Request request(_buffer);
 	Response response(request, _locationMap);
-	response.send(fd);
+	response.sendResponse(fd);
 	_buffer.clear();
 	return 1;
 }
