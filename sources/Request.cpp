@@ -9,16 +9,7 @@ Request::Request(std::string &all) {
 	std::string	value;
 
 	pos = all.find_first_of(" ");
-	i = 0;
-	while (i < 5)
-	{
-		if (methods[i] == all.substr(0, pos))
-			break ;
-		i++;
-	}
-	if (i == 5)
-		std::runtime_error("Bad method");
-	_method = Method(i);
+	_method = all.substr(0, pos);
 	pos += 1;
 	_uri = all.substr(pos, all.find_first_of(" ", pos) - pos);
 	all.erase(0, all.find_first_of("\n") + 1);
@@ -41,7 +32,7 @@ void	Request::display( void ) const {
 		std::cout << it->first << ": " << it->second << std::endl;
 }
 
-Method	Request::getMethod( void ) const {
+std::string	Request::getMethod( void ) const {
 
 	return _method;
 }
@@ -56,7 +47,7 @@ sSMap	Request::getHeaders( void ) const {
 	return _headers;
 }
 
-void	Request::setMethod( const Method &method ) {
+void	Request::setMethod( const std::string &method ) {
 
 	this->_method = method;
 }

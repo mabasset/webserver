@@ -3,18 +3,18 @@
 
 # include "Server.hpp"
 
-enum Method {
+/*enum Method {
 	GET,
 	POST,
 	DELETE,
 	HEAD,
 	PUT,
-};
+};*/
 
 class Request {
 
 	private:
-		enum Method	_method;
+		std::string	_method;
 		std::string _uri;
 		sSMap		_headers;
 
@@ -26,11 +26,11 @@ class Request {
 
 		void display( void ) const;
 
-		Method		getMethod( void ) const;
+		std::string	getMethod( void ) const;
 		std::string	getUri( void ) const;
 		sSMap		getHeaders( void ) const;
 
-		void	setMethod( const Method &method );
+		void	setMethod( const std::string &method );
 		void	setUri( const std::string &uri );
 		void	setHeaders( const sSMap &headers );
 };
