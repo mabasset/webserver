@@ -3,21 +3,12 @@
 
 # include "Server.hpp"
 
-enum Status {
-
-	OK,
-	BAD_REQUEST,
-	FORBIDDEN,
-	NOT_FOUND,
-	METHOD_NOT_ALLOW,
-};
-
 class Request;
 
 class Response {
 
 	private:
-		enum Status		_status;
+		std::string		_status;
 		sSMap			_headers;
 		std::string		_body;
 
@@ -29,13 +20,13 @@ class Response {
 		~Response( void );
 
 		void		sendResponse( const int fd ) const;
-		enum Status detectStatus( const Request &request, const sCMap &locationMap );
-		std::string readFile( const Request &request, const Config &location);
+		std::string	detectStatus( const Request &request, const sCMap &locationMap );
+		std::string	readFile( const Request &request, const Config &location);
 
-		enum Status getStatus( void ) const;
+		std::string	getStatus( void ) const;
 		sSMap		getHaders( void) const;
 
-		void	setStatus( const enum Status &status );
+		void	setStatus( const std::string &status );
 		void	setHeaders( const sSMap &headers );
 };
 

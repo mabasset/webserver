@@ -3,12 +3,13 @@
 Response::Response( const Request &request, const sCMap &locationMap ) {
 
 	_status = detectStatus(request, locationMap);
-	if (_status != OK)
-		return ;
-	_body = readFile(request, locationMap.at(request.getUri()));
-	std::stringstream size;
-	size << _body.size();
-	_headers["Content-Length"] = size.str();
+	if (_status == "HTTP/1.1 200 OK" && request.getMethod() == "GET")
+	{
+		_body = readFile(request, locationMap.at(request.getUri()));
+		std::stringstream size;
+		size << _body.size();
+		_headers["Content-Length"] = size.str();
+	}
 }
 
 std::string Response::readFile( const Request &request, const Config &location ) {
@@ -28,18 +29,18 @@ std::string Response::readFile( const Request &request, const Config &location )
 	return buffer.str();
 }
 
-enum Status Response::detectStatus( const Request &request, const sCMap &locationMap ) {
+std::string Response::detectStatus( const Request &request, const sCMap &locationMap ) {
 
 	std::string	uri;
 	sBMap		allowedMethods;
 
 	uri = request.getUri();
 	if (locationMap.find(uri) == locationMap.end())
-		return NOT_FOUND;
+		return "HTTP/1.1 404 Not Found";
 	allowedMethods = locationMap.at(uri).getAllowedMethods();
 	if (allowedMethods.at(request.getMethod()) == false)
-		return METHOD_NOT_ALLOW;
-	return OK;
+		return "HTTP/1.1 405 Method Not Allowed";
+	return "HTTP/1.1 200 OK";
 }
 
 void	Response::sendResponse( const int fd ) const {
@@ -47,27 +48,15 @@ void	Response::sendResponse( const int fd ) const {
 	std::string	buffer;
 	sSMap tmp = _headers;
 
-	switch(_status) {
-		case OK:
-			buffer += "HTTP/1.1 200 OK\r\n";
-			break ;
-		case NOT_FOUND:
-			buffer += "HTTP/1.1 200 Not Found\r\n";
-			break ;
-		case METHOD_NOT_ALLOW:
-			buffer += "HTTP/1.1 405 Method Not Allowed\r\n";
-			break ;
-		default :
-			buffer += "HTTP/1.1 200 OK\r\n";
-	}
+	buffer += _status + "\r\n";
 	for (sSMap::iterator it = tmp.begin(); it != tmp.end(); it++)
 		buffer += it->first + ": " + it->second + "\r\n";
-	buffer += _body + "\r\n\r\n";
+	buffer += "\r\n" + _body;
 	std::cout << buffer << std::endl;
 	send(fd, buffer.c_str(), buffer.size(), 0);
 }
 
-enum Status Response::getStatus( void ) const {
+std::string Response::getStatus( void ) const {
 
 	return (_status);
 }
@@ -77,7 +66,7 @@ sSMap Response::getHaders( void ) const {
 	return (_headers);
 }
 
-void Response::setStatus( const enum Status &status ) {
+void Response::setStatus( const std::string &status ) {
 
 	this->_status = status;
 }
