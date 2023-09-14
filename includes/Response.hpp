@@ -16,7 +16,7 @@ class Response {
 
 	public:
 
-		Response(const Request &request, const sCMap &locationMap);
+		Response( const Request &request, const sCMap &locationMap);
 		~Response( void );
 
 		void		sendResponse( const int fd ) const;

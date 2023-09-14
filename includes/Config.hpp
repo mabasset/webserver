@@ -50,12 +50,11 @@ class Config {
 		sCMap		_locationMap;
 
 	public:
-		std::string	_location_name;
 
 		Config(void);
 		Config(std::string &serverBody);
 		Config(std::string &locationBody, Config &mainConfig);
-		Config	&operator=(Config &rhs);
+		Config	&operator=(const Config &rhs);
 		~Config(void);
 
 		int			doDirective(std::string &line);

@@ -1,6 +1,6 @@
 #include "../includes/Request.hpp"
 
-Request::Request(std::string &all) {
+Request::Request(std::string &all, const sCMap &locationMap ) {
 
 	std::string	methods[] = { "GET", "POST", "DELETE", "HEAD", "PUT" };
 	size_t		pos;
@@ -21,6 +21,36 @@ Request::Request(std::string &all) {
 		value.erase(0, value.find_first_not_of(" \n\t"));
 		_headers.insert(make_pair(key, value));
 	}
+	_location = this->detectLocation(locationMap);
+}
+
+bool	Request::checkLocationName( const std::string &locationName ) const {
+	size_t		pos;
+	std::string	extension;
+	
+	if (locationName.at(0) == '~')
+	{
+		pos = locationName.find_first_of(".") + 1;
+		extension = locationName.substr(pos, locationName.find_first_of("$") - pos);
+		if (extension.size() <= _uri.size() && std::equal(extension.rbegin(), extension.rend(), locationName.rbegin()))
+			return true ;
+	}
+	else if (locationName.size() <= _uri.size() && std::equal(locationName.begin(), locationName.end(), _uri.begin()))
+		return true ;
+	return false ;
+}
+
+Config	Request::detectLocation( const sCMap &locationMap ) {
+
+	for (sCMap::const_iterator it = locationMap.begin(); it != locationMap.end(); it++)
+	{
+		if (it->first != "/" && this->checkLocationName(it->first))
+		{
+			_uri.replace(_uri.find(it->first), it->first.length(), it->second.getRoot());
+			return it->second;
+		}
+	}
+	return locationMap.at("/");
 }
 
 void	Request::display( void ) const {
@@ -47,6 +77,11 @@ sSMap	Request::getHeaders( void ) const {
 	return _headers;
 }
 
+Config	Request::getLocation( void ) const {
+
+	return _location;
+}
+
 void	Request::setMethod( const std::string &method ) {
 
 	this->_method = method;
@@ -60,6 +95,11 @@ void	Request::setUri( const std::string &uri ) {
 void	Request::setHeaders( const sSMap &headers ) {
 
 	this->_headers = headers;
+}
+
+void	Request::setLocation( const Config &location ) {
+
+	this->_location = location;
 }
 
 Request::~Request(void) {

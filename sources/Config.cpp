@@ -54,7 +54,7 @@ Config::~Config(void) {
 	
 }
 
-Config	&Config::operator=(Config &rhs) {
+Config	&Config::operator=(const Config &rhs) {
 	if (this == &rhs)
 		return *this;
 	
@@ -189,7 +189,8 @@ void	Config::displayConfig(void) const {
 	map = getAllowedMethods();
 	std::cout << std::boolalpha;
 	for(std::map<std::string, bool>::iterator it = map.begin(); it != map.end(); it++)
-		std::cout << it->first << '=' << it->second << ", ";
+		if (it->second == true)
+			std::cout << it->first  << ", ";
 	std::cout << std::endl;
 	std::cout << "autoindex: " << this->getAutoindex() << std::endl;
 	std::cout << "try_files: ";
