@@ -3,13 +3,7 @@
 
 # include "Server.hpp"
 
-/*enum Method {
-	GET,
-	POST,
-	DELETE,
-	HEAD,
-	PUT,
-};*/
+typedef std::pair<std::string, Config> sCPair;
 
 class Request {
 
@@ -23,11 +17,15 @@ class Request {
 
 		bool	checkLocationName( const std::string &locationName ) const;
 		Config	detectLocation( const sCMap &locationMap );
+
 	public:
 		Request(std::string &all, const sCMap &locationMap );
+		Request( const Request &src );
+		Request	&operator=( const Request &rhs );
 		~Request(void);
 
-		void	display( void ) const;
+		static void	fixUri( std::string &uri );
+		void		display( void ) const;
 
 		std::string	getMethod( void ) const;
 		std::string	getUri( void ) const;

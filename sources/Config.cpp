@@ -206,7 +206,6 @@ void	Config::displayConfig(void) const {
 	std::cout << std::endl;
 	pair = this->getReturn();
 	std::cout << "return: " << pair.first << ' ' << pair.second << std::endl;
-	std::cout << std::endl;
 }
 
 const char *Config::badConfigFile::what() const throw() {

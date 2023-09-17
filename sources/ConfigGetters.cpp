@@ -12,7 +12,7 @@ std::string	Config::getRoot(void) const {
 	return _root;
 }
 
-sVec		Config::getIndex(void) const {
+sVec	Config::getIndex(void) const {
 	return _index;
 }
 

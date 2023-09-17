@@ -1,8 +1,7 @@
 #include "../includes/Request.hpp"
 
-Request::Request(std::string &all, const sCMap &locationMap ) {
+Request::Request( std::string &all, const sCMap &locationMap ) {
 
-	std::string	methods[] = { "GET", "POST", "DELETE", "HEAD", "PUT" };
 	size_t		pos;
 	int 		i;
 	std::string	key;
@@ -22,35 +21,69 @@ Request::Request(std::string &all, const sCMap &locationMap ) {
 		_headers.insert(make_pair(key, value));
 	}
 	_location = this->detectLocation(locationMap);
+	Request::fixUri(_uri);
+	if (_uri.at(_uri.size() - 1) == '/')
+		_uri.erase(_uri.end() - 1);
+	if (_uri.at(0) == '/')
+		_uri.erase(0,1);
 }
 
-bool	Request::checkLocationName( const std::string &locationName ) const {
-	size_t		pos;
-	std::string	extension;
-	
-	if (locationName.at(0) == '~')
-	{
-		pos = locationName.find_first_of(".") + 1;
-		extension = locationName.substr(pos, locationName.find_first_of("$") - pos);
-		if (extension.size() <= _uri.size() && std::equal(extension.rbegin(), extension.rend(), locationName.rbegin()))
-			return true ;
-	}
-	else if (locationName.size() <= _uri.size() && std::equal(locationName.begin(), locationName.end(), _uri.begin()))
-		return true ;
-	return false ;
+Request::Request( const Request &src ) {
+	*this = src;
+}
+
+Request	&Request::operator=( const Request &rhs ) {
+	if (this == &rhs)
+		return *this;
+	_method = rhs.getMethod();
+	_uri = rhs.getUri();
+	_headers = rhs.getHeaders();
+	_location = rhs.getLocation();
+	return *this;
 }
 
 Config	Request::detectLocation( const sCMap &locationMap ) {
 
 	for (sCMap::const_iterator it = locationMap.begin(); it != locationMap.end(); it++)
 	{
-		if (it->first != "/" && this->checkLocationName(it->first))
+		if (it->first == "/")
+			continue ;
+		if (it->first != "/" && it->first.at(0) == '~')
+		{
+			size_t		pos = it->first.find_last_of(".") + 1;
+			std::string extension = it->first.substr(pos, it->first.find_last_of("$") - pos);
+			if (std::equal(extension.rbegin(), extension.rend(), _uri.rbegin()))
+			{
+				_uri = it->second.getRoot() + _uri;
+				return it->second;
+			}
+		}
+	}
+	for (sCMap::const_iterator it = locationMap.begin(); it != locationMap.end(); it++)
+	{
+		if (it->first != "/" && std::equal(it->first.begin(), it->first.end(), _uri.begin()))
 		{
 			_uri.replace(_uri.find(it->first), it->first.length(), it->second.getRoot());
 			return it->second;
 		}
 	}
+	_uri = locationMap.at("/").getRoot() + _uri;
 	return locationMap.at("/");
+}
+
+void	Request::fixUri( std::string &uri ) {
+
+    char prev;
+    for (std::string::iterator it = uri.begin(); it != uri.end(); it++)
+    {
+        if (prev == *it && *it == '/')
+        {
+            uri.erase(it);
+            it--;
+        }
+        else
+            prev = *it;
+    }
 }
 
 void	Request::display( void ) const {
@@ -58,8 +91,7 @@ void	Request::display( void ) const {
 	std::cout << "method: " << _method << std::endl;
 	std::cout << "uri: " << _uri << std::endl;
 	sSMap tmp = _headers;
-	for (sSMap::iterator it = tmp.begin(); it != tmp.end(); it++)
-		std::cout << it->first << ": " << it->second << std::endl;
+	_location.displayConfig();
 }
 
 std::string	Request::getMethod( void ) const {

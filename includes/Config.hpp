@@ -8,6 +8,7 @@
 # include <utility>
 # include <stdint.h>
 # include <sstream>
+# include <dirent.h>
 
 typedef	std::vector<std::string> sVec;
 typedef	std::map<std::string, bool> sBMap;
