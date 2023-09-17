@@ -79,8 +79,8 @@ int	Server::handleClient(int fd) {
 		return 0;
 	std::cout << _buffer << std::endl;
 	Request request(_buffer);
-	Response response(request, _locationMap);
-	response.sendResponse(fd);
+	Response response(_config, request, _locationMap, fd);
+	response.sendResponse();
 	_buffer.clear();
 	return 1;
 }
