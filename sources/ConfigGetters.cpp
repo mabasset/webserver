@@ -55,4 +55,3 @@ iSPair		Config::getReturn(void) const {
 std::map<std::string, Config>	Config::getLocationMap(void) const {
 	return _locationMap;
 }
-

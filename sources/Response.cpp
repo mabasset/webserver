@@ -1,58 +1,11 @@
 #include "../includes/Response.hpp"
 
-<<<<<<< HEAD
 Response::Response( const Request &request, const int fd )
 	: _request (&request), _socket(fd), _location(request.getLocation()) {
 
 }
 
 void	Response::compile( ) {
-=======
-Response::Response(Config &location, Request &request, const sCMap &locationMap, const int fd ) : _fd(fd), _request(&request), _location(&location) {
-	//sBMap allowed_methods = _location->getAllowedMethods();
-	//std::cout<<"location: "<< _location->_location_name <<"prova metodo:"<< _request->getMethod()<<std::endl;
- 	//if (allowed_methods[_request->getMethod()] == false) {
-	//	_status = "HTTP/1.1 405 Method Not Allowed";
-	//	return ;
-	//}
-	if (_request->getUri() == "/" && _request->getMethod() == "POST"){
-		_status = "HTTP/1.1 405 Method Not Allowed";
-		return ;
-	}
-	if ("/directory/oulalala" == request.getUri() || "/directory/nop/other.pouac" == request.getUri() || "/directory/Yeah" == request.getUri())
-	{
-		_status = "HTTP/1.1 404 Not Found";
-		return ;
-	}
-	else if (request.getMethod() == "GET")
-	{
-		_status = "HTTP/1.1 200 OK";
-		return ;
-	}
-	else if (request.getMethod() == "PUT")
-	{
-		handlePUT(request);
-		return ;
-	}
-		else if (request.getMethod() == "POST")
-	{
-		handlePOST();
-		return ;
-	}
-	_status = detectStatus(request, locationMap);
-	if (_status == "HTTP/1.1 200 OK" && request.getMethod() == "GET")
-	{
-		_body = readFile(request, locationMap.at(request.getUri()));
-		std::stringstream size;
-		size << _body.size();
-		_headers["Content-Length"] = size.str();
-	}
-}
-
-
-
-std::string Response::readFile( const Request &request, const Config &location ) {
->>>>>>> origin/frudello
 
 	std::string	methods[] = { "GET", "POST", "DELETE", "HEAD", "PUT" };
 	int i;
@@ -67,43 +20,72 @@ std::string Response::readFile( const Request &request, const Config &location )
 	}
 	if (i == 5)
 		throw Error(this, NOT_IMPLEMENTED);
+	sBMap allowed_methods = _location.getAllowedMethods();
+	if (allowed_methods[_request->getMethod()] == false){
+		_status = "405 Not Allowed";
+		return ;
+	}
 	switch (i) {
 		case HEAD:
 		case GET: this->handleGet(); break ;
-		// case POST: this->handlePOST(); break ;
+		case POST: this->handlePOST(); break ;
 		// case DELETE: this->handleDelete(); break ;
-		// case PUT: this->handlePUT(); break ;
+		case PUT: this->handlePUT(); break ;
 		default : throw Error(this, SERVER_ERROR);
 	}
 }
 
-<<<<<<< HEAD
 void	Response::commit( void ) const {
-=======
-void	Response::sendResponse() const {
->>>>>>> origin/frudello
 
 	std::string	buffer("HTTP/1.1 ");
 
 	buffer += _status + "\r\n";
 	for(sSMap::const_iterator it = _headers.begin(); it != _headers.end(); it++)
 		buffer += it->first + ": " + it->second + "\r\n";
+	if (!_headers.empty())
+		buffer += "\r\n";
 	buffer += "\r\n" + _body;
 	std::cout << buffer << std::endl;
-<<<<<<< HEAD
 	send(_socket, buffer.c_str(), buffer.size(), 0);
-=======
-	send(_fd, buffer.c_str(), buffer.size(), 0);
 }
 
-void	Response::handlePUT(const Request &request) {
-	std::cout<<_fd<<" matte handle PUT "<<std::endl;//<<location._location_name<<std::endl<<"LAST:"<<_requestMap["Last"]<<std::endl;
+void	Response::handleGet( void ) {
+
+	DIR *dir = opendir(_request->getUri().c_str());
+	std::ifstream in;
+
+	_status = "200 OK";
+	if (dir != NULL)
+	{
+		closedir(dir);
+		sVec index = _location.getIndex();
+		for (sVec::const_iterator it = index.begin(); it != index.end(); it++)
+		{
+			in.open(_request->getUri() + "/" + *it);
+			if (in.is_open())
+				break ;
+		}
+	}
+	else
+		in.open(_request->getUri());
+	if (!in.is_open())
+	{
+		in.open(_location.getRoot() + _location.getErrorPage().at(404));
+		_status = "404 Not Found";
+	}
+	std::stringstream ss;
+	ss << in.rdbuf();
+	_body = ss.str();
+	in.close();
+}
+
+void	Response::handlePUT( ) {
+	std::cout<<_socket<<" matte handle PUT "<<std::endl;//<<location._location_name<<std::endl<<"LAST:"<<_requestMap["Last"]<<std::endl;
 	//if (request.getHeaders().at("Transfer-Encoding") == "chunked")
 		handlePUTChunked();
 }
 
 void Response::handlePUTChunked() {
-	
 	std::string body = getChunks();
 	std::string filepath("fake_site"); //getRoot
 	//std::string line = request.getUri();
@@ -118,7 +100,10 @@ void Response::handlePUTChunked() {
 		std::cout<<"sono dentro"<<std::endl;
 		file << body;
 		file.close();
-		_status = "HTTP/1.1 201 Created\nContent-Type: application/json\nTransfer-Encoding: chunked\nAccept-Encoding: gzip\n\n";
+		_status = "201 Created";
+		_headers["Content-Type"] = "application/json";
+		_headers["Transfer-Encoding"] = "chunked\r\n";
+		_headers["Accept-Encoding"] = "gzip";
 		return ;
 	}
 	file.close();
@@ -136,12 +121,15 @@ void Response::handlePUTChunked() {
 		if (file.is_open() == true){
 			file << body;
 			file.close();
-			_status = "HTTP/1.1 201 Created\nContent-Type: application/json\nTransfer-Encoding: chunked\nAccept-Encoding: gzip\n";
+			_status = "201 Created";
+			_headers["Content-Type"] = "application/json";
+			_headers["Transfer-Encoding"] = "chunked\r\n";
+			_headers["Accept-Encoding"] = "gzip";
 			return ;
 		}
 		file.close();
 	}
-	
+
 	std::cout<<"error"<<std::endl;
 	_status = "HTTP/1.1 404 Not Found";
 
@@ -155,30 +143,26 @@ std::string Response::getChunks() {
 	std::string body;
 	sSMap chunks;
 
+	std::cout<<"wait..."<<std::endl;
 	while(body.size() < 100000000)
 	{
-
-		std::cout <<"dioporco"<<std::endl;
 		while (buf.find("\r\n") == std::string::npos)
 		{
-			if (recv(_fd, &c, 1, 0) == 0) //condizione un po' a caso
+			if (recv(_socket, &c, 1, 0) == 0) //condizione un po' a caso
 				return body;
 			buf += c;
-			std::cout << "pene" <<std::endl;
 
 		}
-		std::cout<<"buf:"<<buf<<std::endl;
 		std::stringstream conv(buf.substr(0, buf.find("\r\n")));
 		size = 0;
 		conv >> std::hex >> size;
-		std::cout<<"size:"<<size<<std::endl;
 		if(size == 0)
 			goto pene;
 		buf.clear();
 		for(size_t i = 0; i < size + 2; i++)
 		{
 			// std::cout<<"i:"<<i<<std::endl;
-			if (recv(_fd, &c, 1, 0) == 0) //condizione un po' a caso
+			if (recv(_socket, &c, 1, 0) == 0) //condizione un po' a caso
 				return body;
 			buf += c;
 			// std::cout<<"buf2 size:"<<buf.size()<<std::endl;
@@ -187,7 +171,6 @@ std::string Response::getChunks() {
 		buf.pop_back();
 		//std::cout<<"buf2 size:"<<buf.size()<<std::endl;
 		body += buf;
-		std::cout<<"body size:"<<body.size()<<std::endl;
 		buf.clear();
 	}
 	pene:
@@ -199,7 +182,12 @@ std::string Response::getChunks() {
 void	 Response::handlePOST( void ) {
 
 		std::string response_body;
+		_request->display();
 		std::string body = getChunks();
+		// if (body.size() == 0) {
+		// 	_status = "404 Not Found";
+		// 	return ;
+		// }
 		std::string filepath("fake_site/YoupiBanane/"); //getRoot
 		std::string line = "/directory/youpi.bla"; //getUri
 		filepath += line.substr(line.find("/directory/") + 11);
@@ -209,7 +197,11 @@ void	 Response::handlePOST( void ) {
 			response_body = executeCGI(body);
 			file << body;
 			file.close();
-			_status = "HTTP/1.1 201 Created\nContent-Type: application/json\nTransfer-Encoding: chunked\nAccept-Encoding: gzip\nContent-Length:"+ std::to_string(body.size()) + "\n\n";
+			_status = "201 Created";
+			_headers["Content-Type"] = "application/json";
+			_headers["Transfer-Encoding"] = "chunked";
+			_headers["Accept-Encoding"] = "gzip";
+			_headers["Content-Length"] = std::to_string(body.size()) + "\r\n";
 			return ;
 		}
 		file.close();
@@ -228,7 +220,11 @@ void	 Response::handlePOST( void ) {
 				response_body = executeCGI(body);
 				file << body;
 				file.close();
-				_status = "HTTP/1.1 201 Created\nContent-Type: application/json\nTransfer-Encoding: chunked\nAccept-Encoding: gzip\n";
+				_status = "201 Created";
+				_headers["Content-Type"] = "application/json";
+				_headers["Transfer-Encoding"] = "chunked";
+				_headers["Accept-Encoding"] = "gzip";
+				_headers["Content-Length"] = std::to_string(body.size()) + "\r\n";
 				return ;
 			}
 			file.close();
@@ -266,19 +262,18 @@ std::string	Response::executeCGI(std::string &content){
 	}
 	else if (!pid) {
 		std::string uri = _request->getUri();
-		uri.replace(uri.find(_location->_location_name), _location->_location_name.size(), _location->getRoot());
 		size_t pos = uri.find("//");
 		if (pos != std::string::npos)
 			uri.erase(pos, 1);
 		const char *filepath = uri.c_str();
-		char *const args[3] = {strdup(_location->getCgiPass().c_str()), strdup(filepath), NULL};
+		char *const args[3] = {strdup(_location.getCgiPass().c_str()), strdup(filepath), NULL};
 		dup2(fd_in, 0);
 		dup2(fd_out, 1);
 /*		std::cout<<"cgipass "<<location.getCgiPass()<<std::endl;
 		std::cout<<"args0"<<args[0]<<std::endl;
 		std::cout<<"args1"<<args[1]<<std::endl;
 		std::cout<<"args2"<<args[2]<<std::endl;*/
-		execve(_location->getCgiPass().c_str(), args, env);
+		execve(_location.getCgiPass().c_str(), args, env);
 		std::cout << "exxxecve failed" << std::endl;
 		write(1, "Status: 500\r\n\r\n", 15);
 		exit (0);
@@ -347,36 +342,6 @@ char	**Response::getEnvCgi() {
 	}
 	env[j] = NULL;
 	return env;
->>>>>>> origin/frudello
-}
-
-void	Response::handleGet( void ) {
-
-	DIR *dir = opendir(_request->getUri().c_str());
-	std::ifstream in;
-
-	_status = "200 OK";
-	if (dir != NULL)
-	{
-		closedir(dir);
-		std::cout << "ciao" << std::endl;
-		sVec index = _location.getIndex();
-		for (sVec::const_iterator it = index.begin(); it != index.end(); it++)
-		{
-			in.open(_request->getUri() + "/" + *it);
-			if (in.is_open())
-				break ;
-		}
-	}
-	if (!in.is_open())
-	{
-		in.open(_location.getRoot() + _location.getErrorPage().at(404));
-		_status = "404 Not Found";
-	}
-	std::stringstream ss;
-	ss << in.rdbuf();
-	_body = ss.str();
-	in.close();
 }
 
 Request Response::getRequest( void ) const {
@@ -384,14 +349,9 @@ Request Response::getRequest( void ) const {
 	return *this->_request;
 }
 
-sSMap Response::getHeaders( void ) const {
+sSMap Response::getHaders( void ) const {
 
 	return (_headers);
-}
-
-int Response::getFd ( void ) const {
-
-	return (_fd);
 }
 
 void Response::setStatus( const std::string &status ) {
@@ -404,7 +364,6 @@ void Response::setHeaders( const sSMap &headers ) {
 	this->_headers = headers;
 }
 
-<<<<<<< HEAD
 void Response::setBody( const std::string &body ) {
 	
 	this->_body = body;
@@ -415,13 +374,6 @@ void	Response::setRequest( Request request ) {
 	this->_request = &request;
 }
  
-=======
-void Response::setFd( const int fd ) {
-	
-	this->_fd = fd;
-}
-
->>>>>>> origin/frudello
 Response::~Response( void ) {
 
 }
