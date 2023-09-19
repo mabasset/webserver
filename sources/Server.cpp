@@ -77,6 +77,7 @@ int	Server::handleClient(int fd) {
 	_buffer += c;
 	if (_buffer.find("\r\n\r\n") == std::string::npos)
 		return 0;
+<<<<<<< HEAD
 	Request request(_buffer, _locationMap);
 	Response response(request, fd);
 	try {
@@ -86,6 +87,12 @@ int	Server::handleClient(int fd) {
 		e.editResponse(_config.getRoot(), _config.getErrorPage());
 	}
 	response.commit();
+=======
+	std::cout << _buffer << std::endl;
+	Request request(_buffer);
+	Response response(_config, request, _locationMap, fd);
+	response.sendResponse();
+>>>>>>> origin/frudello
 	_buffer.clear();
 	return 1;
 }
