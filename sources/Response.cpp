@@ -42,10 +42,9 @@ void	Response::commit( void ) const {
 	buffer += _status + "\r\n";
 	for(sSMap::const_iterator it = _headers.begin(); it != _headers.end(); it++)
 		buffer += it->first + ": " + it->second + "\r\n";
-	if (!_headers.empty())
-		buffer += "\r\n";
-	buffer += "\r\n" + _body;
-	std::cout << buffer << std::endl;
+	//buffer += "\r\n";
+		buffer += "\r\n" + _body;
+	std::cout<< buffer << std::endl;
 	send(_socket, buffer.c_str(), buffer.size(), 0);
 }
 
@@ -101,9 +100,9 @@ void Response::handlePUTChunked() {
 		file << body;
 		file.close();
 		_status = "201 Created";
-		_headers["Content-Type"] = "application/json";
-		_headers["Transfer-Encoding"] = "chunked\r\n";
-		_headers["Accept-Encoding"] = "gzip";
+		//_headers["Content-Type"] = "application/json";
+		//_headers["Transfer-Encoding"] = "chunked";
+		//_headers["Accept-Encoding"] = "gzip";
 		return ;
 	}
 	file.close();
@@ -122,16 +121,16 @@ void Response::handlePUTChunked() {
 			file << body;
 			file.close();
 			_status = "201 Created";
-			_headers["Content-Type"] = "application/json";
-			_headers["Transfer-Encoding"] = "chunked\r\n";
-			_headers["Accept-Encoding"] = "gzip";
+			//_headers["Content-Type"] = "application/json";
+			//_headers["Transfer-Encoding"] = "chunked";
+			//_headers["Accept-Encoding"] = "gzip";
 			return ;
 		}
 		file.close();
 	}
 
 	std::cout<<"error"<<std::endl;
-	_status = "HTTP/1.1 404 Not Found";
+	_status = "404 Not Found";
 
 }
 
@@ -159,18 +158,23 @@ std::string Response::getChunks() {
 		if(size == 0)
 			goto pene;
 		buf.clear();
-		for(size_t i = 0; i < size + 2; i++)
+		while (buf.size() < size + 2)
 		{
+			size_t s = size + 3 - buf.size();
+			char buff[s];
 			// std::cout<<"i:"<<i<<std::endl;
-			if (recv(_socket, &c, 1, 0) == 0) //condizione un po' a caso
-				return body;
-			buf += c;
-			// std::cout<<"buf2 size:"<<buf.size()<<std::endl;
+			//if (recv(_socket, &c, 1, 0) == 0) //condizione un po' a caso
+			//	return body;
+			size_t nbytes = recv(_socket, buff, s - 1, 0);
+			buff[nbytes] = '\0';
+			buf += buff;
+			//std::cout<<"buf2 size:"<<buf.size()<<std::endl;
 		}
 		buf.pop_back();
 		buf.pop_back();
 		//std::cout<<"buf2 size:"<<buf.size()<<std::endl;
 		body += buf;
+		std::cout<<"size body:"<<body.size()<<std::endl;
 		buf.clear();
 	}
 	pene:
@@ -184,7 +188,7 @@ void	 Response::handlePOST( void ) {
 		std::string response_body;
 		_request->display();
 		std::string body = getChunks();
-		// if (body.size() == 0) {
+		// if (_body.size() == 0) {
 		// 	_status = "404 Not Found";
 		// 	return ;
 		// }
@@ -195,13 +199,13 @@ void	 Response::handlePOST( void ) {
 		if (file.is_open()) {
 			std::cout<<"sono dentro"<<std::endl;
 			response_body = executeCGI(body);
-			file << body;
+			file << response_body;
 			file.close();
 			_status = "201 Created";
-			_headers["Content-Type"] = "application/json";
-			_headers["Transfer-Encoding"] = "chunked";
-			_headers["Accept-Encoding"] = "gzip";
-			_headers["Content-Length"] = std::to_string(body.size()) + "\r\n";
+			//_headers["Content-Type"] = "application/json";
+			//_headers["Transfer-Encoding"] = "chunked";
+			//_headers["Accept-Encoding"] = "gzip";
+			_headers["Content-Length"] = std::to_string(response_body.size());
 			return ;
 		}
 		file.close();
@@ -217,14 +221,14 @@ void	 Response::handlePOST( void ) {
 			//std::cout<< "tentativo: " << filepath + *it << " it:"<<*it<< std::endl;
 			file.open((filepath + *it).c_str());
 			if (file.is_open() == true){
-				response_body = executeCGI(body);
-				file << body;
+				response_body = executeCGI(_body);
+				file << response_body;
 				file.close();
 				_status = "201 Created";
-				_headers["Content-Type"] = "application/json";
-				_headers["Transfer-Encoding"] = "chunked";
-				_headers["Accept-Encoding"] = "gzip";
-				_headers["Content-Length"] = std::to_string(body.size()) + "\r\n";
+				//_headers["Content-Type"] = "application/json";
+				//_headers["Transfer-Encoding"] = "chunked";
+				//_headers["Accept-Encoding"] = "gzip";
+				_headers["Content-Length"] = std::to_string(response_body.size());
 				return ;
 			}
 			file.close();
@@ -245,9 +249,9 @@ std::string	Response::executeCGI(std::string &content){
 	int		fd_out = fileno(out);
 
 	// UNCOMMENT TO PRINT ENV
-	// int i = 0;
-	// while (env[i])
-	//		printf("%s\n", env[i++]);
+	 int i = 0;
+	 while (env[i])
+			printf("%s\n", env[i++]);
 
 	// use tmpFile() instead of pipe() to handle big amount of data
 
@@ -311,7 +315,7 @@ char	**Response::getEnvCgi() {
 	sSMap envMap;
 
 	envMap.insert(std::make_pair("AUTH_TYPE", ""));
-	envMap.insert(std::make_pair("CONTENT_LENGTH", ""));
+	envMap.insert(std::make_pair("CONTENT_LENGTH", std::to_string(_body.size())));
 	envMap.insert(std::make_pair("CONTENT_TYPE", "application/x-www-form-urlencoded"));
 	envMap.insert(std::make_pair("GATEWAY_INTERFACE", "CGI/1.1"));
 	envMap.insert(std::make_pair("PATH_INFO", _request->getUri()));
@@ -375,5 +379,5 @@ void	Response::setRequest( Request request ) {
 }
  
 Response::~Response( void ) {
-
+	_headers.clear();
 }
