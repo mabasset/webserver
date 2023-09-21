@@ -6,7 +6,7 @@ SRC_FIL = $(addprefix sources/,main.cpp Cluster.cpp Server.cpp Config.cpp \
 #OBJS = $(SRC_FIL:.cpp=.o)
 OBJS = *.o
 $(NAME): $(SRC_FIL)
-		c++ -c $(SRC_FIL)
+		c++ $(FLAGS) -c $(SRC_FIL)
 		c++ $(OBJS) -o $(NAME)
 
 all: $(NAME)

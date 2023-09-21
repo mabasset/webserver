@@ -3,7 +3,6 @@
 Request::Request( std::string &all, const sCMap &locationMap ) {
 
 	size_t		pos;
-	int 		i;
 	std::string	key;
 	std::string	value;
 

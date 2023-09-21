@@ -65,6 +65,10 @@ class Response {
 		std::string	executeCGI(std::string &content);
 		char		**getEnvCgi();
 
+		void		setAllowHeader( void );
+		void		setTypeHeader( void );
+		void		setLenghtHeader( void );
+
 		Request		getRequest( void ) const;
 		int			getSocket( void ) const;
 		sSMap		getHaders( void) const;

@@ -55,6 +55,8 @@ void	Config::setRoot(std::string &configStr) {
 	pos = configStr.find_first_not_of(" \t", pos + 4);
 	if (pos >= end)
 		throw badConfigFile();
+	if (configStr.at(pos) == '/')
+		pos += 1;
 	_root = configStr.substr(pos, end - pos);
 	if (_root.find_first_of(" \t") != std::string::npos)
 		throw badConfigFile();
@@ -95,7 +97,7 @@ void	Config::setErrorPage(std::string &configStr) {
 	configStr = configStr.substr(pos, end - pos);
 	end = configStr.find_first_of(" \t");
 	try {
-		error_code = std::stoi(configStr.substr(0, end));
+		error_code = std::atoi(configStr.substr(0, end).c_str());
 	}
 	catch(std::exception &e) {
 		throw badConfigFile();

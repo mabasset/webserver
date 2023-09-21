@@ -13,7 +13,7 @@ void	Response::Error::editResponse( std::string const &root, iSMap const &errorP
 		case 402: _response->setStatus("402 Payment Required"); break ;
 		case 403: _response->setStatus("403 Forbidden"); break ;
 		case 404: _response->setStatus("404 Not Found"); break ;
-		case 405: _response->setStatus("405 Method Not Allowed"); break ;
+		case 405: _response->setStatus("405 Method Not Allowed"); _response->setAllowHeader(); break ;
 		case 406: _response->setStatus("406 Not Acceptable"); break ;
 		case 411: _response->setStatus("411 Length Required"); break ;
 		case 413: _response->setStatus("413 Request Entity Too Large"); break ;
@@ -22,14 +22,16 @@ void	Response::Error::editResponse( std::string const &root, iSMap const &errorP
 		default:
 			_response->setStatus("500 Internal Server Error");
 	}
-	_response->_headers.clear();
-	_response->_body.clear();
 	if (errorPageMap.find(_code) == errorPageMap.end())
 		return ;
-	std::ifstream in(root + errorPageMap.at(_code));
-	std::stringstream ss;
+	std::string			uri(root + errorPageMap.at(_code));
+	Request::fixUri(uri);
+	std::ifstream		in(uri.c_str());
+	_response->setTypeHeader();
+	std::stringstream	ss;
 	ss << in.rdbuf();
 	_response->setBody(ss.str());
+	_response->setLenghtHeader();
 }
 
 Response    Response::Error::getResponse( void ) const {

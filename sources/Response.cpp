@@ -1,7 +1,7 @@
 #include "../includes/Response.hpp"
 
 Response::Response( const Request &request, const int fd )
-	: _request (&request), _socket(fd), _location(request.getLocation()) {
+	: _socket(fd), _request (&request), _location(request.getLocation()) {
 
 }
 
@@ -20,11 +20,8 @@ void	Response::compile( ) {
 	}
 	if (i == 5)
 		throw Error(this, NOT_IMPLEMENTED);
-	sBMap allowed_methods = _location.getAllowedMethods();
-	if (allowed_methods[_request->getMethod()] == false){
-		_status = "405 Not Allowed";
-		return ;
-	}
+	if (_location.getAllowedMethods()[_request->getMethod()] == false)
+		throw Error(this, NOT_ALLOWED);
 	switch (i) {
 		case HEAD:
 		case GET: this->handleGet(); break ;
@@ -42,8 +39,8 @@ void	Response::commit( void ) const {
 	buffer += _status + "\r\n";
 	for(sSMap::const_iterator it = _headers.begin(); it != _headers.end(); it++)
 		buffer += it->first + ": " + it->second + "\r\n";
-	//buffer += "\r\n";
-		buffer += "\r\n" + _body;
+	buffer += "\r\n" + _body;
+	buffer += "\r\n";
 	std::cout<< buffer << std::endl;
 	send(_socket, buffer.c_str(), buffer.size(), 0);
 }
@@ -60,16 +57,16 @@ void	Response::handleGet( void ) {
 		sVec index = _location.getIndex();
 		for (sVec::const_iterator it = index.begin(); it != index.end(); it++)
 		{
-			in.open(_request->getUri() + "/" + *it);
+			in.open((_request->getUri() + "/" + *it).c_str());
 			if (in.is_open())
 				break ;
 		}
 	}
 	else
-		in.open(_request->getUri());
+		in.open(_request->getUri().c_str());
 	if (!in.is_open())
 	{
-		in.open(_location.getRoot() + _location.getErrorPage().at(404));
+		in.open((_location.getRoot() + _location.getErrorPage().at(404)).c_str());
 		_status = "404 Not Found";
 	}
 	std::stringstream ss;
@@ -100,9 +97,9 @@ void Response::handlePUTChunked() {
 		file << body;
 		file.close();
 		_status = "201 Created";
-		//_headers["Content-Type"] = "application/json";
-		//_headers["Transfer-Encoding"] = "chunked";
-		//_headers["Accept-Encoding"] = "gzip";
+		_headers["Content-Type"] = "application/json";
+		_headers["Transfer-Encoding"] = "chunked\n";
+		_headers["Accept-Encoding"] = "gzip";
 		return ;
 	}
 	file.close();
@@ -121,9 +118,9 @@ void Response::handlePUTChunked() {
 			file << body;
 			file.close();
 			_status = "201 Created";
-			//_headers["Content-Type"] = "application/json";
-			//_headers["Transfer-Encoding"] = "chunked";
-			//_headers["Accept-Encoding"] = "gzip";
+			_headers["Content-Type"] = "application/json";
+			_headers["Transfer-Encoding"] = "chunked\n";
+			_headers["Accept-Encoding"] = "gzip";
 			return ;
 		}
 		file.close();
@@ -170,8 +167,7 @@ std::string Response::getChunks() {
 			buf += buff;
 			//std::cout<<"buf2 size:"<<buf.size()<<std::endl;
 		}
-		buf.pop_back();
-		buf.pop_back();
+		buf.erase(buf.size() - 2);
 		//std::cout<<"buf2 size:"<<buf.size()<<std::endl;
 		body += buf;
 		std::cout<<"size body:"<<body.size()<<std::endl;
@@ -202,10 +198,12 @@ void	 Response::handlePOST( void ) {
 			file << response_body;
 			file.close();
 			_status = "201 Created";
-			//_headers["Content-Type"] = "application/json";
-			//_headers["Transfer-Encoding"] = "chunked";
-			//_headers["Accept-Encoding"] = "gzip";
-			_headers["Content-Length"] = std::to_string(response_body.size());
+			_headers["Content-Type"] = "application/json";
+			_headers["Transfer-Encoding"] = "chunked\n";
+			_headers["Accept-Encoding"] = "gzip";
+			std::stringstream ss;
+			ss << response_body.size();
+			_headers["Content-Length"] = ss.str();
 			return ;
 		}
 		file.close();
@@ -225,10 +223,12 @@ void	 Response::handlePOST( void ) {
 				file << response_body;
 				file.close();
 				_status = "201 Created";
-				//_headers["Content-Type"] = "application/json";
-				//_headers["Transfer-Encoding"] = "chunked";
-				//_headers["Accept-Encoding"] = "gzip";
-				_headers["Content-Length"] = std::to_string(response_body.size());
+				_headers["Content-Type"] = "application/json";
+				_headers["Transfer-Encoding"] = "chunked\n";
+				_headers["Accept-Encoding"] = "gzip";
+				std::stringstream ss;
+				ss << response_body.size();
+				_headers["Content-Length"] = ss.str();
 				return ;
 			}
 			file.close();
@@ -271,15 +271,17 @@ std::string	Response::executeCGI(std::string &content){
 			uri.erase(pos, 1);
 		const char *filepath = uri.c_str();
 		char *const args[3] = {strdup(_location.getCgiPass().c_str()), strdup(filepath), NULL};
+		std::cout<<"args0 "<<args[0]<<std::endl;
+		std::cout<<"args1 "<<args[1]<<std::endl;
+		std::cout<<"args2 "<<args[2]<<std::endl;
 		dup2(fd_in, 0);
 		dup2(fd_out, 1);
-/*		std::cout<<"cgipass "<<location.getCgiPass()<<std::endl;
-		std::cout<<"args0"<<args[0]<<std::endl;
-		std::cout<<"args1"<<args[1]<<std::endl;
-		std::cout<<"args2"<<args[2]<<std::endl;*/
 		execve(_location.getCgiPass().c_str(), args, env);
 		std::cout << "exxxecve failed" << std::endl;
 		write(1, "Status: 500\r\n\r\n", 15);
+	// 	int err = errno;
+	// fprintf(stderr, "%s\n", explain_errno_execve(err, _location.getCgiPass().c_str(), args, env));
+	// exit(EXIT_FAILURE);
 		exit (0);
 	}
 	else {
@@ -315,20 +317,22 @@ char	**Response::getEnvCgi() {
 	sSMap envMap;
 
 	envMap.insert(std::make_pair("AUTH_TYPE", ""));
-	envMap.insert(std::make_pair("CONTENT_LENGTH", std::to_string(_body.size())));
+	std::stringstream ss;
+	ss << _body.size();
+	envMap.insert(std::make_pair("CONTENT_LENGTH", ss.str()));
 	envMap.insert(std::make_pair("CONTENT_TYPE", "application/x-www-form-urlencoded"));
 	envMap.insert(std::make_pair("GATEWAY_INTERFACE", "CGI/1.1"));
 	envMap.insert(std::make_pair("PATH_INFO", _request->getUri()));
-	envMap.insert(std::make_pair("PATH_TRANSLATED", "mettere qua uri translated"));
+	envMap.insert(std::make_pair("PATH_TRANSLATED", _request->getUri()));
 	envMap.insert(std::make_pair("QUERY_STRING", ""));
-	envMap.insert(std::make_pair("REMOTE_ADDR", _headers["Host"]));
+	envMap.insert(std::make_pair("REMOTE_ADDR", _request->getHeaders().at("Host")));
 	envMap.insert(std::make_pair("REMOTE_HOST", ""));
 	envMap.insert(std::make_pair("REMOTE_IDENT", ""));
 	envMap.insert(std::make_pair("REMOTE_USER", ""));
 	envMap.insert(std::make_pair("REQUEST_METHOD",  _request->getMethod()));
 	envMap.insert(std::make_pair("REQUEST_URI", _request->getUri()));
 	envMap.insert(std::make_pair("SCRIPT_NAME", "ubuntu_cgi_tester"/*location.cgi_pass.substr(location.cgi_pass().find_last_of("/") + 1)*/));
-	envMap.insert(std::make_pair("SERVER_NAME", "http://" + _headers["Host"]));
+	envMap.insert(std::make_pair("SERVER_NAME", "http://" + _request->getHeaders().at("Host")));
 	envMap.insert(std::make_pair("SERVER_PORT", "8080" /*locatio.serverport()*/));
 	envMap.insert(std::make_pair("SERVER_PROTOCOL", "HTTP/1.1"));
 	envMap.insert(std::make_pair("SERVER_SOFTWARE", "Webserv/1.0"));
@@ -346,6 +350,30 @@ char	**Response::getEnvCgi() {
 	}
 	env[j] = NULL;
 	return env;
+}
+
+void Response::setAllowHeader( void ) {
+
+	std::string	methods;
+	sBMap		tmp = _location.getAllowedMethods();
+
+	for (sBMap::const_iterator it = tmp.begin(); it != tmp.end(); it++)
+		if (it->second)
+	  		methods += it->first + ", ";
+	if (!methods.empty())
+		methods.erase(methods.length() - 2);
+	_headers["Allow"] = methods;
+}
+
+void Response::setTypeHeader( void ) {
+	_headers["Content-Type"] = "text/html";
+}
+
+void Response::setLenghtHeader( ) {
+
+	std::stringstream ss;
+	ss << _body.size();   
+	_headers["Content-Length"] = ss.str();
 }
 
 Request Response::getRequest( void ) const {
