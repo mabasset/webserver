@@ -195,6 +195,10 @@ void	 Response::handlePOST( void ) {
 		if (file.is_open()) {
 			std::cout<<"sono dentro"<<std::endl;
 			response_body = executeCGI(body);
+			if (response_body.find("Status") != std::string::npos)
+				response_body.erase(0, response_body.find("\n"));
+			if (response_body.find("Content-Type") != std::string::npos)
+				response_body.erase(0, response_body.find("\r\n\r\n") + 4);
 			file << response_body;
 			file.close();
 			_status = "201 Created";
@@ -204,6 +208,7 @@ void	 Response::handlePOST( void ) {
 			std::stringstream ss;
 			ss << response_body.size();
 			_headers["Content-Length"] = ss.str();
+			//std::cout<<"BODY:"<<_body<<std::endl;
 			return ;
 		}
 		file.close();
@@ -270,18 +275,18 @@ std::string	Response::executeCGI(std::string &content){
 		if (pos != std::string::npos)
 			uri.erase(pos, 1);
 		const char *filepath = uri.c_str();
-		char *const args[3] = {strdup(_location.getCgiPass().c_str()), strdup(filepath), NULL};
-		std::cout<<"args0 "<<args[0]<<std::endl;
-		std::cout<<"args1 "<<args[1]<<std::endl;
-		std::cout<<"args2 "<<args[2]<<std::endl;
+		std::string script_path = _location.getCgiPass();
+		if (script_path.at(0) == '/')
+			script_path.erase(0, 1);
+		char *const args[3] = {strdup(script_path.c_str()), strdup(filepath), NULL};
+		// std::cout<<"args0 "<<args[0]<<std::endl;
+		// std::cout<<"args1 "<<args[1]<<std::endl;
+		// std::cout<<"args2 "<<args[2]<<std::endl;
 		dup2(fd_in, 0);
 		dup2(fd_out, 1);
-		execve(_location.getCgiPass().c_str(), args, env);
+		execve(args[0], args, env);
 		std::cout << "exxxecve failed" << std::endl;
 		write(1, "Status: 500\r\n\r\n", 15);
-	// 	int err = errno;
-	// fprintf(stderr, "%s\n", explain_errno_execve(err, _location.getCgiPass().c_str(), args, env));
-	// exit(EXIT_FAILURE);
 		exit (0);
 	}
 	else {
@@ -296,8 +301,6 @@ std::string	Response::executeCGI(std::string &content){
 				_retBody.push_back(buffer[i]);
 			memset(buffer, 0, sizeof buffer);
 		}
-			std::ofstream file("prova.txt", std::ios::out | std::ios::trunc) ;
-			file << _retBody.c_str();
 	}
 	fclose(in);
 	fclose(out);
@@ -317,9 +320,7 @@ char	**Response::getEnvCgi() {
 	sSMap envMap;
 
 	envMap.insert(std::make_pair("AUTH_TYPE", ""));
-	std::stringstream ss;
-	ss << _body.size();
-	envMap.insert(std::make_pair("CONTENT_LENGTH", ss.str()));
+	envMap.insert(std::make_pair("CONTENT_LENGTH", ""));
 	envMap.insert(std::make_pair("CONTENT_TYPE", "application/x-www-form-urlencoded"));
 	envMap.insert(std::make_pair("GATEWAY_INTERFACE", "CGI/1.1"));
 	envMap.insert(std::make_pair("PATH_INFO", _request->getUri()));
@@ -331,7 +332,7 @@ char	**Response::getEnvCgi() {
 	envMap.insert(std::make_pair("REMOTE_USER", ""));
 	envMap.insert(std::make_pair("REQUEST_METHOD",  _request->getMethod()));
 	envMap.insert(std::make_pair("REQUEST_URI", _request->getUri()));
-	envMap.insert(std::make_pair("SCRIPT_NAME", "ubuntu_cgi_tester"/*location.cgi_pass.substr(location.cgi_pass().find_last_of("/") + 1)*/));
+	envMap.insert(std::make_pair("SCRIPT_NAME", _request->getLocation().getCgiPass().substr(_request->getLocation().getCgiPass().find_last_of("/") + 1)));
 	envMap.insert(std::make_pair("SERVER_NAME", "http://" + _request->getHeaders().at("Host")));
 	envMap.insert(std::make_pair("SERVER_PORT", "8080" /*locatio.serverport()*/));
 	envMap.insert(std::make_pair("SERVER_PROTOCOL", "HTTP/1.1"));
