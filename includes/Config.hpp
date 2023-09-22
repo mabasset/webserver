@@ -81,7 +81,7 @@ class Config {
 		sVec		getIndex(void) const;
 		iSMap		getErrorPage(void) const;
 		std::string	getErrorPage(int err);
-		int			getClientMaxBodySize(void) const;
+		size_t		getClientMaxBodySize(void) const;
 		sBMap		getAllowedMethods(void) const;
 		bool		getAutoindex(void) const;
 		sVec		getTryFiles(void) const;

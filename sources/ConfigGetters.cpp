@@ -24,7 +24,7 @@ std::string		Config::getErrorPage(int err) {
 	return _error_page[err];
 }
 
-int			Config::getClientMaxBodySize(void) const {
+size_t			Config::getClientMaxBodySize(void) const {
 	return _client_max_body_size;
 }
 

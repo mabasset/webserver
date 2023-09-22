@@ -58,8 +58,7 @@ class Response {
 		void		commit( void ) const;
 
 		void		handleGet( void );
-		void		handlePUT( void );
-		void		handlePUTChunked( void );
+		void		handlePut( void );
 		std::string getChunks( void );
 		void	 	handlePOST( void );
 		std::string	executeCGI(std::string &content);

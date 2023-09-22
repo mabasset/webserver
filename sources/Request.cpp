@@ -1,46 +1,23 @@
 #include "../includes/Request.hpp"
 
-Request::Request( std::string &all, const sCMap &locationMap ) {
+Request::Request( std::string &all, const sCMap &locationMap, const int fd ) {
 
 	size_t		pos;
-	std::string	key;
-	std::string	value;
+	std::string	key, val;
 
-	std::cout<<"all:"<<all<<std::endl;
 	pos = all.find_first_of(" ");
 	_method = all.substr(0, pos);
 	pos += 1;
 	_uri = all.substr(pos, all.find_first_of(" ", pos) - pos);
 	all.erase(0, all.find_first_of("\n") + 1);
-	all.erase(all.find("\r\n\r\n"), 4);
 	std::stringstream ss(all);
-	while (std::getline(ss, key, ':'))
-	{
-		std::getline(ss, value);
-		value.erase(0, value.find_first_not_of(" \n\t"));
-		_headers.insert(make_pair(key, value));
-	}
+	while (std::getline(std::getline(ss, key, ':') >> std::ws, val))
+		_headers.insert(std::make_pair(key, val.substr(0, val.size() - 1)));
 	_location = this->detectLocation(locationMap);
 	Request::fixUri(_uri);
-	if (_uri.at(_uri.size() - 1) == '/')
-		_uri.erase(_uri.end() - 1);
-	if (_uri.at(0) == '/')
-		_uri.erase(0,1);
+	this->detectBody(fd);
 }
 
-Request::Request( const Request &src ) {
-	*this = src;
-}
-
-Request	&Request::operator=( const Request &rhs ) {
-	if (this == &rhs)
-		return *this;
-	_method = rhs.getMethod();
-	_uri = rhs.getUri();
-	_headers = rhs.getHeaders();
-	_location = rhs.getLocation();
-	return *this;
-}
 
 Config	Request::detectLocation( const sCMap &locationMap ) {
 
@@ -52,7 +29,6 @@ Config	Request::detectLocation( const sCMap &locationMap ) {
 			return it->second;
 		}
 	}
-	//matteuccio ci tiene a specificare che il tester potrebbbe essere scemo e per fargli andare bene la risposta abbiamo invertito i cicli per togliere la priorita dalle rege
 	for (sCMap::const_iterator it = locationMap.begin(); it != locationMap.end(); it++)
 	{
 		if (it->first == "/")
@@ -70,6 +46,15 @@ Config	Request::detectLocation( const sCMap &locationMap ) {
 	}
 	_uri = locationMap.at("/").getRoot() + _uri;
 	return locationMap.at("/");
+}
+
+void	Request::detectBody( const int fd ) {
+
+	int size;
+
+	do {
+		Chunk chunk()
+	} while (size > 0);
 }
 
 void	Request::fixUri( std::string &uri ) {
@@ -92,10 +77,24 @@ void	Request::display( void ) const {
 	std::cout << "method: " << _method << std::endl;
 	std::cout << "uri: " << _uri << std::endl;
 	sSMap tmp = _headers;
-	// for (sSMap::iterator it = tmp.begin(); it != tmp.end(); it++){
-	// 	std::cout<<it->first<<": "<<it->second<<std::endl;
-	// }
+	for (sSMap::iterator it = tmp.begin(); it != tmp.end(); it++){
+		std::cout<<it->first<<": "<<it->second<<std::endl;
+	}
 	_location.displayConfig();
+}
+
+Request::Request( const Request &src ) {
+	*this = src;
+}
+
+Request	&Request::operator=( const Request &rhs ) {
+	if (this == &rhs)
+		return *this;
+	_method = rhs.getMethod();
+	_uri = rhs.getUri();
+	_headers = rhs.getHeaders();
+	_location = rhs.getLocation();
+	return *this;
 }
 
 std::string	Request::getMethod( void ) const {
@@ -116,6 +115,11 @@ sSMap	Request::getHeaders( void ) const {
 Config	Request::getLocation( void ) const {
 
 	return _location;
+}
+
+std::string	Request::getBody( void ) const {
+
+	return _body;
 }
 
 void	Request::setMethod( const std::string &method ) {
@@ -142,4 +146,8 @@ Request::~Request(void) {
 
 }
 
+void	Request::setBody( const std::string &body ) {
+
+	this->_body = body;
+}
 

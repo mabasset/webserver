@@ -27,7 +27,7 @@ void	Response::compile( ) {
 		case GET: this->handleGet(); break ;
 		case POST: this->handlePOST(); break ;
 		// case DELETE: this->handleDelete(); break ;
-		case PUT: this->handlePUT(); break ;
+		case PUT: this->handlePut(); break ;
 		default : throw Error(this, SERVER_ERROR);
 	}
 }
@@ -75,13 +75,10 @@ void	Response::handleGet( void ) {
 	in.close();
 }
 
-void	Response::handlePUT( ) {
-	std::cout<<_socket<<" matte handle PUT "<<std::endl;//<<location._location_name<<std::endl<<"LAST:"<<_requestMap["Last"]<<std::endl;
-	//if (request.getHeaders().at("Transfer-Encoding") == "chunked")
-		handlePUTChunked();
-}
+void	Response::handlePut( void ) {
 
-void Response::handlePUTChunked() {
+	if (_request->getHeaders().at("Transfer-Encoding") != "chunked")
+		throw Error(this, NOT_IMPLEMENTED);
 	std::string body = getChunks();
 	std::string filepath("fake_site"); //getRoot
 	//std::string line = request.getUri();
@@ -133,49 +130,17 @@ void Response::handlePUTChunked() {
 
 std::string Response::getChunks() {
 
-	char c;
-	size_t size;
-	std::string buf;
-	std::string body;
-	sSMap chunks;
+	std::string	body;
 
-	std::cout<<"wait..."<<std::endl;
-	while(body.size() < 100000000)
+	while(true)
 	{
-		while (buf.find("\r\n") == std::string::npos)
-		{
-			if (recv(_socket, &c, 1, 0) == 0) //condizione un po' a caso
-				return body;
-			buf += c;
-
-		}
-		std::stringstream conv(buf.substr(0, buf.find("\r\n")));
-		size = 0;
-		conv >> std::hex >> size;
-		if(size == 0)
-			goto pene;
-		buf.clear();
-		while (buf.size() < size + 2)
-		{
-			size_t s = size + 3 - buf.size();
-			char buff[s];
-			// std::cout<<"i:"<<i<<std::endl;
-			//if (recv(_socket, &c, 1, 0) == 0) //condizione un po' a caso
-			//	return body;
-			size_t nbytes = recv(_socket, buff, s - 1, 0);
-			buff[nbytes] = '\0';
-			buf += buff;
-			//std::cout<<"buf2 size:"<<buf.size()<<std::endl;
-		}
-		buf.erase(buf.size() - 2);
-		//std::cout<<"buf2 size:"<<buf.size()<<std::endl;
-		body += buf;
-		std::cout<<"size body:"<<body.size()<<std::endl;
-		buf.clear();
+		Chunk chunk(_socket);
+		if (chunk.getSize() == 0)
+			break ;
+		body += chunk.getBody();
 	}
-	pene:
-		;
-	std::cout<<"vado dopo pene "<<body.size()<<std::endl;
+	if (body.size() > _location.getClientMaxBodySize())
+		throw Error(this, TOO_LARGE);
 	return body;
 }
 
