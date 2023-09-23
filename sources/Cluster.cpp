@@ -24,14 +24,13 @@ Cluster::Cluster(const char *filePath) {
 	}
 }
 
-void	Cluster::startListening(void)
-{
+void	Cluster::startListening(void) {
 	while (1)
 		for (std::vector<Server>::iterator it = _serverVec.begin(); it != _serverVec.end(); it++)
 			it->makePoll();
 }
 
-sVec	Cluster::divideByServer(std::string &fileContent) {
+sVec	Cluster::divideByServer(const std::string &fileContent) const {
 	size_t	bodyLen;
 	sVec	serverBodyVec;
 

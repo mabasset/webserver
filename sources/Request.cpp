@@ -14,47 +14,56 @@ Request::Request( std::string &all, const sCMap &locationMap, const int fd ) {
 	while (std::getline(std::getline(ss, key, ':') >> std::ws, val))
 		_headers.insert(std::make_pair(key, val.substr(0, val.size() - 1)));
 	_location = this->detectLocation(locationMap);
-	Request::fixUri(_uri);
-	this->detectBody(fd);
+	if ((_method != "PUT" && _method != "POST") || _headers.at("Transfer-Encoding") != "chunked")
+		return ;
+	this->detectChuncks(fd);
 }
 
-
-Config	Request::detectLocation( const sCMap &locationMap ) {
+const Config	&Request::detectLocation( const sCMap &locationMap ) {
 
 	for (sCMap::const_iterator it = locationMap.begin(); it != locationMap.end(); it++)
-	{
 		if (it->first != "/" && std::equal(it->first.begin(), it->first.end(), _uri.begin()))
-		{
-			_uri.replace(_uri.find(it->first), it->first.length(), it->second.getRoot());
 			return it->second;
-		}
-	}
 	for (sCMap::const_iterator it = locationMap.begin(); it != locationMap.end(); it++)
 	{
-		if (it->first == "/")
-			continue ;
 		if (it->first != "/" && it->first.at(0) == '~')
 		{
 			size_t		pos = it->first.find_last_of(".") + 1;
 			std::string extension = it->first.substr(pos, it->first.find_last_of("$") - pos);
 			if (std::equal(extension.rbegin(), extension.rend(), _uri.rbegin()))
-			{
-				_uri = it->second.getRoot() + _uri;
 				return it->second;
-			}
 		}
 	}
-	_uri = locationMap.at("/").getRoot() + _uri;
 	return locationMap.at("/");
 }
 
-void	Request::detectBody( const int fd ) {
+void	Request::detectChuncks( const int fd ) {
 
-	int size;
+	char		c;
+	size_t		size;
 
-	do {
-		Chunk chunk()
-	} while (size > 0);
+	while(true)
+	{
+		std::string	buf;
+		while (buf.find("\r\n") == std::string::npos)
+		{
+			if (recv(fd, &c, 1, 0) < 1)
+				throw std::runtime_error("recv error");
+			buf += c;
+		}
+		std::stringstream	ss(buf.substr(0, buf.find("\r\n")));
+		ss >> std::hex >> size;
+		if (size < 1)
+			return ;
+		buf.clear();
+		while (buf.find("\r\n") == std::string::npos)
+		{
+			if (recv(fd, &c, 1, 0) < 1)
+				throw std::runtime_error("recv error");
+			buf += c;
+		}
+		_chunks.push_back(buf.substr(0, buf.find("\r\n")));
+	}
 }
 
 void	Request::fixUri( std::string &uri ) {
@@ -76,8 +85,7 @@ void	Request::display( void ) const {
 
 	std::cout << "method: " << _method << std::endl;
 	std::cout << "uri: " << _uri << std::endl;
-	sSMap tmp = _headers;
-	for (sSMap::iterator it = tmp.begin(); it != tmp.end(); it++){
+	for (sSMap::const_iterator it = _headers.begin(); it != _headers.end(); it++){
 		std::cout<<it->first<<": "<<it->second<<std::endl;
 	}
 	_location.displayConfig();
@@ -97,29 +105,29 @@ Request	&Request::operator=( const Request &rhs ) {
 	return *this;
 }
 
-std::string	Request::getMethod( void ) const {
+const std::string	&Request::getMethod( void ) const {
 
 	return _method;
 }
 
-std::string	Request::getUri( void ) const {
+const std::string	&Request::getUri( void ) const {
 
 	return _uri;
 }
 
-sSMap	Request::getHeaders( void ) const {
+const sSMap	&Request::getHeaders( void ) const {
 
 	return _headers;
 }
 
-Config	Request::getLocation( void ) const {
+const Config	&Request::getLocation( void ) const {
 
 	return _location;
 }
 
-std::string	Request::getBody( void ) const {
+const sVec	&Request::getChunks( void ) const {
 
-	return _body;
+	return _chunks;
 }
 
 void	Request::setMethod( const std::string &method ) {
@@ -142,12 +150,11 @@ void	Request::setLocation( const Config &location ) {
 	this->_location = location;
 }
 
+void	Request::setChunks( const sVec &chunks ) {
+
+	this->_chunks = chunks;
+}
+
 Request::~Request(void) {
 
 }
-
-void	Request::setBody( const std::string &body ) {
-
-	this->_body = body;
-}
-

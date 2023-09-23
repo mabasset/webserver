@@ -34,13 +34,12 @@ Config::Config(std::string &serverBody)
 	}
 }
 
-Config::Config(std::string &locationBody, Config &mainConfig) {
-	*this = mainConfig;
+Config::Config(std::string &locationBody, Config &mainConfig, const std::string &locationName)
+	: _locationName(locationName) {
 
+	*this = mainConfig;
 	std::string	line;
-	std::string	directive;
 	size_t		pos;
-	std::string	locationName;
 
 	while ((pos = locationBody.find_first_of('\n')) != std::string::npos)
 	{
@@ -156,8 +155,8 @@ void	Config::addLocation(std::string &serverBody) {
 	pos = end + 1;
 	end = serverBody.find_first_of("}");
 	locationBody = serverBody.substr(pos, end);
-	Config locationConfig(locationBody, *this);
-	_locationMap.insert(std::pair<std::string, Config>(locationName, locationConfig));
+	Config locationConfig(locationBody, *this, locationName);
+	_locationMap.insert(std::make_pair(locationName, locationConfig));
 	serverBody.erase(0, end);
 }
 

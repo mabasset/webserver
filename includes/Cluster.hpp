@@ -20,8 +20,7 @@ class Cluster {
 		Cluster(const char *filePath);
 		~Cluster(void);
 
-		sVec	divideByServer(std::string &fileContent);
-		void	displayServerConfig(Config &config) const;
+		sVec	divideByServer(const std::string &fileContent) const;
 
 		void	startListening(void);
 

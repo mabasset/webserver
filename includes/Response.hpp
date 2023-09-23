@@ -39,12 +39,12 @@ enum Method {
 class Response {
 
 	private:
-		int			_socket;
-		Request const *_request;
-		Config		_location;
-		std::string	_status;
-		sSMap		_headers;
-		std::string	_body;
+		int				_socket;
+		Request const	*_request;
+		std::string		_transUri;
+		std::string		_status;
+		sSMap			_headers;
+		std::string		_body;
 
 		Response( void );
 

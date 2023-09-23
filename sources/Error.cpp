@@ -27,6 +27,8 @@ void	Response::Error::editResponse( std::string const &root, iSMap const &errorP
 	std::string			uri(root + errorPageMap.at(_code));
 	Request::fixUri(uri);
 	std::ifstream		in(uri.c_str());
+	if (!in.is_open())
+		return ;
 	_response->setTypeHeader();
 	std::stringstream	ss;
 	ss << in.rdbuf();

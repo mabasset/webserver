@@ -1,6 +1,7 @@
 #include "../includes/Server.hpp"
 
-Server::Server(Config &config, sCMap &locationMap) : _config(config), _locationMap(locationMap) {
+Server::Server(const Config &config, const sCMap &locationMap)
+	: _config(config), _locationMap(locationMap) {
 	struct sockaddr_in	addr;
 	int					listener;
 
@@ -69,7 +70,7 @@ void	Server::newConnection(void) {
 	_pfds.push_back(socket);
 }
 
-int	Server::handleClient(int fd) {
+int	Server::handleClient(const int fd) {
 	char		c;
 
 	if (recv(fd, &c, 1, 0) < 1)
@@ -91,10 +92,10 @@ int	Server::handleClient(int fd) {
 	return 1;
 }
 
-void	Server::displayServerConfig(void) {
+void	Server::displayServerConfig(void) const {
 	std::cout << "Server" << std::endl;
 	_config.displayConfig();
-	for (sCMap::iterator it = _locationMap.begin(); it != _locationMap.end(); it++)
+	for (sCMap::const_iterator it = _locationMap.begin(); it != _locationMap.end(); it++)
 	{
 		std::cout << "Name: " << it->first << std::endl;
 		it->second.displayConfig();

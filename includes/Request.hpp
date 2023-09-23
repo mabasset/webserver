@@ -2,9 +2,9 @@
 # define REQUEST_HPP
 
 # include "Server.hpp"
-# include "Chunk.hpp"
+# include <sys/stat.h>
 
-typedef std::pair<std::string, Config> sCPair;
+typedef std::pair<std::string, Config>	sCPair;
 
 class Request {
 
@@ -13,12 +13,12 @@ class Request {
 		std::string _uri;
 		sSMap		_headers;
 		Config		_location;
-		std::string	_body;
+		sVec		_chunks;
 
 		Request(void);
 
-		bool	checkLocationName( const std::string &locationName ) const;
-		Config	detectLocation( const sCMap &locationMap );
+		const Config	&detectLocation( const sCMap &locationMap );
+		void			detectChuncks( const int fd );
 
 	public:
 		Request(std::string &all, const sCMap &locationMap, const int fd );
@@ -29,17 +29,17 @@ class Request {
 		static void	fixUri( std::string &uri );
 		void		display( void ) const;
 
-		std::string	getMethod( void ) const;
-		std::string	getUri( void ) const;
-		sSMap		getHeaders( void ) const;
-		Config		getLocation( void ) const;
-		std::string	getBody( void ) const;
+		const std::string	&getMethod( void ) const;
+		const std::string	&getUri( void ) const;
+		const sSMap			&getHeaders( void ) const;
+		const Config		&getLocation( void ) const;
+		const sVec			&getChunks( void ) const;
 
 		void	setMethod( const std::string &method );
 		void	setUri( const std::string &uri );
 		void	setHeaders( const sSMap &headers );
 		void	setLocation( const Config &location );
-		void	setBody( const std::string &body );
+		void	setChunks( const sVec &chunks );
 };
 
 #endif

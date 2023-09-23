@@ -2,7 +2,7 @@ NAME = webserv
 FLAGS = -Wall -Wextra -Werror -std=c++98
 SRC_FOL = sources/
 SRC_FIL = $(addprefix sources/,main.cpp Cluster.cpp Server.cpp Config.cpp \
-			ConfigSetters.cpp ConfigGetters.cpp Request.cpp Response.cpp Error.cpp Chunk.cpp)
+			ConfigSetters.cpp ConfigGetters.cpp Request.cpp Response.cpp Error.cpp)
 #OBJS = $(SRC_FIL:.cpp=.o)
 OBJS = *.o
 $(NAME): $(SRC_FIL)
@@ -11,16 +11,11 @@ $(NAME): $(SRC_FIL)
 
 all: $(NAME)
 
-debug:	
-		c++ -g -O0 $(SRC_FIL) -o $(NAME)
-		mv webserv Debug
-
 clean:
 		rm -rf $(OBJS)
 
 fclean:	clean
 		rm -rf $(NAME)
-		rm -rf Debug/$(NAME)
 		rm -rf fake_site/file_should_exist_after
 
 re:		fclean all

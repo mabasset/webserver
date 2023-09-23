@@ -1,57 +1,76 @@
 #include "../includes/Config.hpp"
 
-uint16_t	Config::getListen(void) const {
+typedef	std::map<std::string, Config>	sCMap;
+
+const uint16_t		&Config::getListen(void) const {
 	return _listen;
 }
 
-sVec		Config::getServerName(void) const {
+const sVec			&Config::getServerName(void) const {
 	return _server_name;
 }
 
-std::string	Config::getRoot(void) const {
+const std::string	&Config::getRoot(void) const {
+
 	return _root;
 }
 
-sVec	Config::getIndex(void) const {
+const sVec			&Config::getIndex(void) const {
+
 	return _index;
 }
 
-iSMap		Config::getErrorPage(void) const {
+const iSMap			&Config::getErrorPage(void) const {
+
 	return _error_page;
 }
 
-std::string		Config::getErrorPage(int err) {
+const std::string	&Config::getErrorPage(int err) {
+
 	return _error_page[err];
 }
 
-size_t			Config::getClientMaxBodySize(void) const {
+const size_t		&Config::getClientMaxBodySize(void) const {
+
 	return _client_max_body_size;
 }
 
-sBMap		Config::getAllowedMethods(void) const {
+const sBMap			&Config::getAllowedMethods(void) const {
+
 	return _allowed_methods;
 }
 
-bool		Config::getAutoindex(void) const {
+const bool			&Config::getAutoindex(void) const {
+
 	return _autoindex;
 }
 
-sVec		Config::getTryFiles(void) const {
+const sVec			&Config::getTryFiles(void) const {
+
 	return _try_files;
 }
 
-std::string	Config::getCgiPass(void) const {
+const std::string	&Config::getCgiPass(void) const {
+
 	return _cgi_pass;
 }
 
-sVec		Config::getExtensionCgi(void) const {
+const sVec			&Config::getExtensionCgi(void) const {
+
 	return _extension_cgi;
 }
 
-iSPair		Config::getReturn(void) const {
+const iSPair		&Config::getReturn(void) const {
+
 	return _return;
 }
 
-std::map<std::string, Config>	Config::getLocationMap(void) const {
+const sCMap			&Config::getLocationMap(void) const {
+
 	return _locationMap;
+}
+
+const std::string	&Config::getLocationName(void) const {
+
+	return _locationName;
 }
