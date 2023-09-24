@@ -34,13 +34,13 @@ Config::Config(std::string &serverBody)
 	}
 }
 
-Config::Config(std::string &locationBody, Config &mainConfig, const std::string &locationName)
-	: _locationName(locationName) {
+Config::Config(std::string &locationBody, Config &mainConfig, const std::string &locationName) {
 
 	*this = mainConfig;
 	std::string	line;
 	size_t		pos;
 
+	_locationName = locationName;
 	while ((pos = locationBody.find_first_of('\n')) != std::string::npos)
 	{
 		line = locationBody.substr(locationBody.find_first_not_of(" \t\n"), pos);
@@ -70,6 +70,7 @@ Config	&Config::operator=(const Config &rhs) {
 	this->_extension_cgi = rhs.getExtensionCgi();
 	this->_return = rhs.getReturn();
 	this->_locationMap = rhs.getLocationMap();
+	this->_locationName = rhs.getLocationName();
 
 	return *this;
 }
@@ -205,6 +206,7 @@ void	Config::displayConfig(void) const {
 	std::cout << std::endl;
 	pair = this->getReturn();
 	std::cout << "return: " << pair.first << ' ' << pair.second << std::endl;
+	std::cout << "locaton name: " << _locationName << std::endl;
 }
 
 const char *Config::badConfigFile::what() const throw() {

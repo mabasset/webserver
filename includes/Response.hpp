@@ -2,6 +2,7 @@
 # define RESPONSE_HPP
 
 # include "Server.hpp"
+# include <sys/stat.h>
 
 class Request;
 
