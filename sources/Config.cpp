@@ -34,14 +34,13 @@ Config::Config(std::string &serverBody)
 	}
 }
 
-Config::Config(std::string &locationBody, Config &mainConfig) {
+Config::Config(std::string &locationBody, Config &mainConfig, const std::string &locationName) {
+
 	*this = mainConfig;
-
 	std::string	line;
-	std::string	directive;
 	size_t		pos;
-	std::string	locationName;
 
+	_locationName = locationName;
 	while ((pos = locationBody.find_first_of('\n')) != std::string::npos)
 	{
 		line = locationBody.substr(locationBody.find_first_not_of(" \t\n"), pos);
@@ -54,7 +53,7 @@ Config::~Config(void) {
 	
 }
 
-Config	&Config::operator=(Config &rhs) {
+Config	&Config::operator=(const Config &rhs) {
 	if (this == &rhs)
 		return *this;
 	
@@ -71,6 +70,7 @@ Config	&Config::operator=(Config &rhs) {
 	this->_extension_cgi = rhs.getExtensionCgi();
 	this->_return = rhs.getReturn();
 	this->_locationMap = rhs.getLocationMap();
+	this->_locationName = rhs.getLocationName();
 
 	return *this;
 }
@@ -156,8 +156,8 @@ void	Config::addLocation(std::string &serverBody) {
 	pos = end + 1;
 	end = serverBody.find_first_of("}");
 	locationBody = serverBody.substr(pos, end);
-	Config locationConfig(locationBody, *this);
-	_locationMap.insert(std::pair<std::string, Config>(locationName, locationConfig));
+	Config locationConfig(locationBody, *this, locationName);
+	_locationMap.insert(std::make_pair(locationName, locationConfig));
 	serverBody.erase(0, end);
 }
 
@@ -189,7 +189,8 @@ void	Config::displayConfig(void) const {
 	map = getAllowedMethods();
 	std::cout << std::boolalpha;
 	for(std::map<std::string, bool>::iterator it = map.begin(); it != map.end(); it++)
-		std::cout << it->first << '=' << it->second << ", ";
+		if (it->second == true)
+			std::cout << it->first  << ", ";
 	std::cout << std::endl;
 	std::cout << "autoindex: " << this->getAutoindex() << std::endl;
 	std::cout << "try_files: ";
@@ -205,7 +206,6 @@ void	Config::displayConfig(void) const {
 	std::cout << std::endl;
 	pair = this->getReturn();
 	std::cout << "return: " << pair.first << ' ' << pair.second << std::endl;
-	std::cout << std::endl;
 }
 
 const char *Config::badConfigFile::what() const throw() {

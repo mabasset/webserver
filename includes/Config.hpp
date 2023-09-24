@@ -8,11 +8,12 @@
 # include <utility>
 # include <stdint.h>
 # include <sstream>
+# include <dirent.h>
 
-typedef	std::vector<std::string> sVec;
-typedef	std::map<std::string, bool> sBMap;
-typedef	std::pair<int, std::string> iSPair;
-typedef std::map<int, std::string>	iSMap;
+typedef	std::vector<std::string> 		sVec;
+typedef	std::map<std::string, bool> 	sBMap;
+typedef	std::pair<int, std::string> 	iSPair;
+typedef std::map<int, std::string>		iSMap;
 
 enum Directives {
 	LISTEN,
@@ -39,7 +40,7 @@ class Config {
 		std::string	_root;
 		sVec		_index;
 		iSMap		_error_page;
-		int			_client_max_body_size;
+		size_t		_client_max_body_size;
 		sBMap		_allowed_methods;
 		bool		_autoindex;
 		sVec		_try_files;
@@ -48,14 +49,14 @@ class Config {
 		iSPair		_return;
 
 		sCMap		_locationMap;
+		std::string	_locationName;
 
 	public:
-		std::string	_location_name;
 
 		Config(void);
 		Config(std::string &serverBody);
-		Config(std::string &locationBody, Config &mainConfig);
-		Config	&operator=(Config &rhs);
+		Config(std::string &locationBody, Config &mainConfig, const std::string &locationName);
+		Config	&operator=(const Config &rhs);
 		~Config(void);
 
 		int			doDirective(std::string &line);
@@ -74,21 +75,23 @@ class Config {
 		void	setCgiPass(std::string &configStr);
 		void	setExtensionCgi(std::string &configStr);
 		void	setReturn(std::string &configStr);
+		void	setLocationName(std::string &locationName);
 
-		uint16_t	getListen(void) const;
-		sVec		getServerName(void) const;
-		std::string	getRoot(void) const;
-		sVec		getIndex(void) const;
-		iSMap		getErrorPage(void) const;
-		std::string	getErrorPage(int err);
-		int			getClientMaxBodySize(void) const;
-		sBMap		getAllowedMethods(void) const;
-		bool		getAutoindex(void) const;
-		sVec		getTryFiles(void) const;
-		std::string	getCgiPass(void) const;
-		sVec		getExtensionCgi(void) const;
-		iSPair		getReturn(void) const;
-		sCMap		getLocationMap(void) const;
+		const uint16_t		&getListen(void) const;
+		const sVec			&getServerName(void) const;
+		const std::string	&getRoot(void) const;
+		const sVec			&getIndex(void) const;
+		const iSMap			&getErrorPage(void) const;
+		const std::string	&getErrorPage(int err);
+		const size_t		&getClientMaxBodySize(void) const;
+		const sBMap			&getAllowedMethods(void) const;
+		const bool			&getAutoindex(void) const;
+		const sVec			&getTryFiles(void) const;
+		const std::string	&getCgiPass(void) const;
+		const sVec			&getExtensionCgi(void) const;
+		const iSPair		&getReturn(void) const;
+		const sCMap			&getLocationMap(void) const;
+		const std::string	&getLocationName(void) const;
 
 		struct badConfigFile : public std::exception {
 			virtual const char *what() const throw();

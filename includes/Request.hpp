@@ -2,14 +2,9 @@
 # define REQUEST_HPP
 
 # include "Server.hpp"
+# include <sys/stat.h>
 
-/*enum Method {
-	GET,
-	POST,
-	DELETE,
-	HEAD,
-	PUT,
-};*/
+typedef std::pair<std::string, Config>	sCPair;
 
 class Request {
 
@@ -17,22 +12,34 @@ class Request {
 		std::string	_method;
 		std::string _uri;
 		sSMap		_headers;
+		Config		_location;
+		sVec		_chunks;
 
 		Request(void);
 
+		const Config	&detectLocation( const sCMap &locationMap );
+		void			detectChuncks( const int fd );
+
 	public:
-		Request(std::string &all);
+		Request(std::string &all, const sCMap &locationMap, const int fd );
+		Request( const Request &src );
+		Request	&operator=( const Request &rhs );
 		~Request(void);
 
-		void display( void ) const;
+		static void	fixUri( std::string &uri );
+		void		display( void ) const;
 
-		std::string	getMethod( void ) const;
-		std::string	getUri( void ) const;
-		sSMap		getHeaders( void ) const;
+		const std::string	&getMethod( void ) const;
+		const std::string	&getUri( void ) const;
+		const sSMap			&getHeaders( void ) const;
+		const Config		&getLocation( void ) const;
+		const sVec			&getChunks( void ) const;
 
 		void	setMethod( const std::string &method );
 		void	setUri( const std::string &uri );
 		void	setHeaders( const sSMap &headers );
+		void	setLocation( const Config &location );
+		void	setChunks( const sVec &chunks );
 };
 
 #endif

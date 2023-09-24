@@ -1,5 +1,7 @@
 #include "../includes/Config.hpp"
 
+typedef	std::map<std::string, Config>	sCMap;
+
 void	Config::setListen(std::string &configStr) {
 	size_t		pos;
 	size_t		end;
@@ -29,6 +31,7 @@ void	Config::setServerName(std::string &configStr) {
 	size_t	end;
 	std::string	line;
 
+	_server_name.clear();
 	pos = configStr.find("server_name");
 	end = configStr.find(";", pos);
 	if (pos == std::string::npos || end == std::string::npos || configStr.at(end + 1) != '\n')
@@ -55,6 +58,8 @@ void	Config::setRoot(std::string &configStr) {
 	pos = configStr.find_first_not_of(" \t", pos + 4);
 	if (pos >= end)
 		throw badConfigFile();
+	if (configStr.at(pos) == '/')
+		pos += 1;
 	_root = configStr.substr(pos, end - pos);
 	if (_root.find_first_of(" \t") != std::string::npos)
 		throw badConfigFile();
@@ -65,6 +70,7 @@ void	Config::setIndex(std::string &configStr) {
 	size_t	end;
 	std::string	line;
 
+	_index.clear();
 	pos = configStr.find("index");
 	end = configStr.find(";", pos);
 	if (pos == std::string::npos || end == std::string::npos || configStr.at(end + 1) != '\n')
@@ -85,6 +91,7 @@ void	Config::setErrorPage(std::string &configStr) {
 	size_t	end;
 	int		error_code;
 
+	_error_page.clear();
 	pos = configStr.find("error_page");
 	end = configStr.find(";", pos);
 	if (pos == std::string::npos || end == std::string::npos || configStr.at(end + 1) != '\n')
@@ -95,7 +102,7 @@ void	Config::setErrorPage(std::string &configStr) {
 	configStr = configStr.substr(pos, end - pos);
 	end = configStr.find_first_of(" \t");
 	try {
-		error_code = std::stoi(configStr.substr(0, end));
+		error_code = std::atoi(configStr.substr(0, end).c_str());
 	}
 	catch(std::exception &e) {
 		throw badConfigFile();
@@ -118,15 +125,13 @@ void	Config::setClientMaxBodySize(std::string &configStr) {
 	if (pos >= end)
 		throw badConfigFile();
 	line = configStr.substr(pos, end - pos);
+	if (line.find_first_not_of("0123456789Kk") != std::string::npos)
+		throw badConfigFile();
 	pos = line.find_first_of("Kk");
 	if (pos != std::string::npos)
 		line.replace(pos, 1, 3, '0');
-	if (line.find_first_not_of("0123456789Kk") != std::string::npos)
-		throw badConfigFile();
 	std::istringstream tmp(line.substr(0,10));
 	if(!(tmp >> _client_max_body_size))
-		throw badConfigFile();
-	if (_client_max_body_size < 0)
 		throw badConfigFile();
 }
 
@@ -196,6 +201,7 @@ void	Config::setTryFiles(std::string &configStr) {
 	size_t	end;
 	std::string	line;
 
+	_try_files.clear();
 	pos = configStr.find("try_files");
 	end = configStr.find(";", pos);
 	if (pos == std::string::npos || end == std::string::npos || configStr.at(end + 1) != '\n')
@@ -232,6 +238,7 @@ void	Config::setExtensionCgi(std::string &configStr) {
 	size_t	end;
 	std::string	line;
 
+	_extension_cgi.clear();
 	pos = configStr.find("extension_cgi");
 	end = configStr.find(";", pos);
 	if (pos == std::string::npos || end == std::string::npos || configStr.at(end + 1) != '\n')
@@ -278,4 +285,9 @@ void	Config::setReturn(std::string &configStr) {
 		url = line.substr(pos, end);
 		_return = (std::make_pair(status_code, url));
 	}
+}
+
+void	Config::setLocationName(std::string &locationName) {
+
+	this->_locationName = locationName;
 }
