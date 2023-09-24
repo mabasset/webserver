@@ -49,7 +49,7 @@ class Response {
 
 		Response( void );
 
-		void	translateUri( void );
+		std::string	translateUri( void );
 
 		void	setAllowHeader( void );
 		void	setTypeHeader( void );

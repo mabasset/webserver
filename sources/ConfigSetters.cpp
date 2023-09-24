@@ -91,7 +91,6 @@ void	Config::setErrorPage(std::string &configStr) {
 	size_t	end;
 	int		error_code;
 
-	_error_page.clear();
 	pos = configStr.find("error_page");
 	end = configStr.find(";", pos);
 	if (pos == std::string::npos || end == std::string::npos || configStr.at(end + 1) != '\n')

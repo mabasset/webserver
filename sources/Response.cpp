@@ -10,7 +10,7 @@ void	Response::compile( ) {
 	std::string	methods[] = { "GET", "POST", "DELETE", "HEAD", "PUT" };
 	int i;
 
-	translateUri(); 
+	_uri = this->translateUri();
 	i = 0;
 	while (i < 5)
 	{
@@ -201,11 +201,47 @@ char	**Response::getEnvCgi() {
 	return env;
 }
 
-void	Response::translateUri( void ) {
+std::string	Response::translateUri( void ) {
 
-	std::cout << _uri << std::endl;
-	std::cout << _request->getLocation().getLocationName() << std::endl;
-	std::cout << _request->getLocation().getRoot() << std::endl;
+	std::string uri;
+	Config		location = _request->getLocation();
+	struct stat stat_data;
+
+	if (location.getLocationName() == "/")
+	{
+		uri = location.getRoot() + _request->getUri();
+		Request::fixUri(uri);
+	}
+	else
+	{
+		uri = _request->getUri();
+		uri.replace(0, location.getLocationName().size(), location.getRoot());
+		Request::fixUri(uri);
+	}
+	for (sVec::const_iterator it = location.getTryFiles().begin(); it != location.getTryFiles().end(); it++)
+	{
+		if (*it == "$uri")
+		{
+  			if (stat(uri.c_str(), &stat_data) == 0)
+  				if (stat_data.st_mode & S_IFREG)
+					return uri;
+		}
+		else if (*it == "$uri/")
+		{
+			for (sVec::const_iterator ite = location.getIndex().begin(); ite != location.getIndex().end(); ite++)
+			{
+				std::string tmp(uri + "/" + *ite);
+				Request::fixUri(tmp);
+				if (stat(tmp.c_str(), &stat_data) == 0)
+  					if (stat_data.st_mode & S_IFREG)
+						return tmp;
+			}
+		}
+		else if (it->find_first_not_of("01234567890") == std::string::npos)
+			throw Error(this, atoi(it->c_str()));
+	}
+	throw Error(this, BAD_REQUEST);
+	return NULL;
 }
 
 void Response::setAllowHeader( void ) {

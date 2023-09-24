@@ -22,7 +22,7 @@ void	Response::Error::editResponse( std::string const &root, iSMap const &errorP
 		default:
 			_response->setStatus("500 Internal Server Error");
 	}
-	if (errorPageMap.find(_code) == errorPageMap.end())
+	if (errorPageMap.find(_code) == errorPageMap.end() || _response->getRequest().getMethod() == "HEAD")
 		return ;
 	std::string			uri(root + errorPageMap.at(_code));
 	Request::fixUri(uri);

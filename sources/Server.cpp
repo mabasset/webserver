@@ -79,7 +79,7 @@ int	Server::handleClient(const int fd) {
 	if (_buffer.find("\r\n\r\n") == std::string::npos)
 		return 0;
 	Request request(_buffer, _locationMap, fd);
-	request.display();
+	//request.display();
 	Response response(request, fd);
 	try {
 		response.compile();
