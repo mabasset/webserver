@@ -1,7 +1,7 @@
 #include "../includes/Response.hpp"
 
 Response::Response( const Request &request, const int fd )
-	: _socket(fd), _request (&request) {
+	: _socket(fd), _request (&request), _uri(request.getUri()) {
 
 }
 
@@ -10,7 +10,7 @@ void	Response::compile( ) {
 	std::string	methods[] = { "GET", "POST", "DELETE", "HEAD", "PUT" };
 	int i;
 
-	_status = 
+	translateUri(); 
 	i = 0;
 	while (i < 5)
 	{
@@ -253,6 +253,13 @@ void	 Response::handlePOST( void ) {
 // 	return env;
 //}
 
+void	Response::translateUri( void ) {
+
+	std::cout << _uri << std::endl;
+	std::cout << _request->getLocation().getLocationName() << std::endl;
+	std::cout << _request->getLocation().getRoot() << std::endl;
+}
+
 void Response::setAllowHeader( void ) {
 
 	std::string	methods;
@@ -277,36 +284,62 @@ void Response::setLenghtHeader( ) {
 	_headers["Content-Length"] = ss.str();
 }
 
-Request Response::getRequest( void ) const {
+const int			&Response::getSocket( void ) const {
+
+	return _socket;
+}
+
+const Request		&Response::getRequest( void ) const {
 
 	return *this->_request;
 }
 
-sSMap Response::getHaders( void ) const {
+const std::string	&Response::getUri( void ) const {
 
-	return (_headers);
+	return _uri;
+}
+
+const sSMap			&Response::getHaders( void ) const {
+
+	return _headers;
+}
+
+const std::string	&Response::getBody( void ) const {
+
+	return _body;
+}
+
+void Response::setSocket( const int &socket ) {
+	
+	this->_socket = socket;
+}
+
+void	Response::setRequest( const Request &request ) {
+
+	this->_request = &request;
+}
+
+void Response::setUri( const std::string &uri ) {
+
+	this->_uri = uri;
 }
 
 void Response::setStatus( const std::string &status ) {
-	
+
 	this->_status = status;
 }
 
 void Response::setHeaders( const sSMap &headers ) {
-	
+
 	this->_headers = headers;
 }
 
 void Response::setBody( const std::string &body ) {
-	
+
 	this->_body = body;
-}
-
-void	Response::setRequest( Request request ) {
-
-	this->_request = &request;
 }
  
 Response::~Response( void ) {
+
 	_headers.clear();
 }

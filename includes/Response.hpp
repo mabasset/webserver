@@ -41,38 +41,43 @@ class Response {
 	private:
 		int				_socket;
 		Request const	*_request;
-		std::string		_transUri;
+		std::string		_uri;
 		std::string		_status;
 		sSMap			_headers;
 		std::string		_body;
 
 		Response( void );
 
+		void	translateUri( void );
+
+		void	setAllowHeader( void );
+		void	setTypeHeader( void );
+		void	setLenghtHeader( void );
 	public:
 
 		Response( const Request &request, const int fd);
 		~Response( void );
 
-		std::string	translateUri( const Request &request );
-		void		compile( void );
-		void		commit( void ) const;
+		void	compile( void );
+		void	commit( void ) const;
 
 		void		handleGet( void );
 		void		handlePut( void );
-		std::string getChunks( void );
 		void	 	handlePOST( void );
 		std::string	executeCGI(std::string &content);
 		char		**getEnvCgi();
 
-		void		setAllowHeader( void );
-		void		setTypeHeader( void );
-		void		setLenghtHeader( void );
 
-		Request		getRequest( void ) const;
-		int			getSocket( void ) const;
-		sSMap		getHaders( void) const;
+		const int			&getSocket( void ) const;
+		const Request		&getRequest( void ) const;
+		const std::string	&getUri( void ) const;
+		const std::string	&getStatus( void ) const;
+		const sSMap			&getHaders( void) const;
+		const std::string	&getBody( void ) const;
 
-		void	setRequest( Request request );
+		void	setSocket( const int &socket );
+		void	setRequest( const Request &request );
+		void 	setUri( const std::string &uri );
 		void	setStatus( const std::string &status );
 		void	setHeaders( const sSMap &headers );
 		void	setBody( const std::string &body );
