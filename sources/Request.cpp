@@ -56,29 +56,36 @@ void	Request::detectChuncks( const int fd ) {
 		if (size < 1)
 			return ;
 		buf.clear();
+		size += 3;
+		int	n_bytes;
 		while (buf.find("\r\n") == std::string::npos)
 		{
-			if (recv(fd, &c, 1, 0) < 1)
+			char	buffer[size];
+			if ((n_bytes = recv(fd, buffer, size - 1, 0)) < 1)
 				throw std::runtime_error("recv error");
-			buf += c;
+			buffer[n_bytes] = '\0';
+			buf += buffer;
+			std::cout << buf.size() << std::endl;
+			size -= n_bytes;
 		}
 		_chunks.push_back(buf.substr(0, buf.find("\r\n")));
 	}
 }
 
-void	Request::fixUri( std::string &uri ) {
+std::string	Request::fixUri( std::string uri ) {
 
-    char prev;
-    for (std::string::iterator it = uri.begin(); it != uri.end(); it++)
-    {
-        if (prev == *it && *it == '/')
-        {
-            uri.erase(it);
-            it--;
-        }
-        else
-            prev = *it;
-    }
+	char prev;
+	for (std::string::iterator it = uri.begin(); it != uri.end(); it++)
+	{
+		if (prev == *it && *it == '/')
+		{
+			uri.erase(it);
+			it--;
+		}
+		else
+			prev = *it;
+	}
+	return uri;
 }
 
 void	Request::display( void ) const {

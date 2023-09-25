@@ -3,6 +3,7 @@
 
 # include "Server.hpp"
 # include <sys/stat.h>
+# include <algorithm>
 
 typedef std::pair<std::string, Config>	sCPair;
 
@@ -26,8 +27,8 @@ class Request {
 		Request	&operator=( const Request &rhs );
 		~Request(void);
 
-		static void	fixUri( std::string &uri );
-		void		display( void ) const;
+		static std::string	fixUri( std::string uri );
+		void				display( void ) const;
 
 		const std::string	&getMethod( void ) const;
 		const std::string	&getUri( void ) const;

@@ -10,7 +10,6 @@
 # include <fstream>
 # include <string>
 # include <sstream>
-# include <sys/stat.h>
 # include <sys/wait.h>
 # include <string.h>
 # include "Config.hpp"

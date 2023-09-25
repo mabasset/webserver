@@ -2,6 +2,7 @@
 # define RESPONSE_HPP
 
 # include "Server.hpp"
+# include <sys/types.h>
 # include <sys/stat.h>
 
 class Request;
@@ -42,14 +43,13 @@ class Response {
 	private:
 		int				_socket;
 		Request const	*_request;
+		Config			_location;
 		std::string		_uri;
 		std::string		_status;
 		sSMap			_headers;
 		std::string		_body;
 
 		Response( void );
-
-		std::string	translateUri( void );
 
 		void	setAllowHeader( void );
 		void	setTypeHeader( void );

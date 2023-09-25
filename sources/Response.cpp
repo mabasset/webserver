@@ -1,17 +1,14 @@
 #include "../includes/Response.hpp"
 
 Response::Response( const Request &request, const int fd )
-	: _socket(fd), _request (&request), _uri(request.getUri()) {
+	: _socket(fd), _request (&request), _location(request.getLocation()), _uri(request.getUri()) {
 
 }
 
 void	Response::compile( ) {
 
 	std::string	methods[] = { "GET", "POST", "DELETE", "HEAD", "PUT" };
-	int i;
-
-	_uri = this->translateUri();
-	i = 0;
+	int i = 0;
 	while (i < 5)
 	{
 		if (_request->getMethod() == methods[i])
@@ -20,8 +17,15 @@ void	Response::compile( ) {
 	}
 	if (i == 5)
 		throw Error(this, NOT_IMPLEMENTED);
-	if (_request->getLocation().getAllowedMethods().at(_request->getMethod()) == false)
+	if (_location.getAllowedMethods().at(_request->getMethod()) == false)
 		throw Error(this, NOT_ALLOWED);
+
+	_uri = _request->getUri();
+	if (_location.getLocationName() == "/")
+		_uri = _location.getRoot() + "/" + _request->getUri();
+	else
+		_uri.replace(0, _location.getLocationName().size(), _location.getRoot());
+	_uri = Request::fixUri(_uri);
 	switch (i) {
 		case HEAD:
 		case GET: this->handleGet(); break ;
@@ -42,24 +46,38 @@ void	Response::commit( void ) const {
 	if (!_headers.empty())
 		buffer += "\r\n";
 	buffer += _body;
-	std::cout<< buffer << std::endl;
+	//std::cout<< buffer << std::endl;
 	send(_socket, buffer.c_str(), buffer.size(), 0);
 }
 
 void	Response::handleGet( void ) {
 
-	_status = "200 OK";
-	std::ifstream in(_uri.c_str());
+	sVec try_files = _location.getTryFiles();
+	std::ifstream in;
+	struct stat fileStat;
+	stat(_uri.c_str(), &fileStat);
+	if (std::find(try_files.begin(), try_files.end(), "$uri") != try_files.end() && !S_ISDIR(fileStat.st_mode))
+		in.open(_uri.c_str());
+	else if (std::find(try_files.begin(), try_files.end(), "$uri/") != try_files.end())
+	{
+		for (sVec::const_iterator it = _location.getIndex().begin(); it != _location.getIndex().end(); it++)
+		{
+			in.open(Request::fixUri(_uri + "/" + *it).c_str());
+			if (in.is_open())
+				break ;
+		}
+	}
 	if (!in.is_open())
-		throw Error(this, SERVER_ERROR);
+		throw Error(this, NOT_FOUND);
+	std::cout << _uri << std::endl;
 	std::stringstream ss;
 	ss << in.rdbuf();
 	_body = ss.str();
-	in.close();
 	this->setTypeHeader();
 	this->setLenghtHeader();
 	if (_request->getMethod() == "HEAD")
 		_body.clear();
+	_status = "200 OK";
 }
 
 void	Response::handlePut( void ) {
@@ -67,15 +85,29 @@ void	Response::handlePut( void ) {
 	if (_request->getHeaders().at("Transfer-Encoding") != "chunked")
 		throw Error(this, NOT_IMPLEMENTED);
 
+	sVec try_files = _location.getTryFiles();
+	std::ofstream out;
+	struct stat fileStat;
+	stat(_uri.c_str(), &fileStat);
+	if (std::find(try_files.begin(), try_files.end(), "$uri") != try_files.end() && !S_ISDIR(fileStat.st_mode))
+		out.open(_uri.c_str(), std::ios::out | std::ios::trunc);
+	else if (std::find(try_files.begin(), try_files.end(), "$uri/") != try_files.end())
+	{
+		for (sVec::const_iterator it = _location.getIndex().begin(); it != _location.getIndex().end(); it++)
+		{
+			out.open(Request::fixUri(_uri + "/" + *it).c_str(), std::ios::out | std::ios::trunc);
+			if (out.is_open())
+				break ;
+		}
+	}
+	if (!out.is_open())
+		throw Error(this, FORBIDDEN);
 	for (sVec::const_iterator it = _request->getChunks().begin(); it != _request->getChunks().end(); it++)
 		_body += *it;
-	struct stat buffer;
-	_status = "201 Created";
-  	if (stat (_uri.c_str(), &buffer) == 0)
-		_status = "204 No Content";
-	std::ofstream out(_uri.c_str(), std::ios::out | std::ios::trunc);
-	if (!out.is_open())
-		throw Error(this, SERVER_ERROR);
+	if (_body.size() == 0)
+		throw Error(this, NO_CONTENT);
+	if (_location.getClientMaxBodySize() != 0 && _body.size() > _location.getClientMaxBodySize())
+		throw Error(this, TOO_LARGE);
 	if (_request->getMethod() == "POST")
 	{
 		_body = executeCGI(_body);
@@ -85,9 +117,9 @@ void	Response::handlePut( void ) {
 			_body.erase(0, _body.find("\r\n\r\n") + 4);
 	}
 	out << _body;
-	out.close();
 	_headers["Content-Location"] = _uri;
 	this->setLenghtHeader();
+	_status = "201 Created";
 }
 
 std::string	Response::executeCGI(std::string &content){
@@ -123,7 +155,7 @@ std::string	Response::executeCGI(std::string &content){
 		if (pos != std::string::npos)
 			uri.erase(pos, 1);
 		const char *filepath = uri.c_str();
-		std::string script_path = _request->getLocation().getCgiPass();
+		std::string script_path = _location.getCgiPass();
 		if (script_path.at(0) == '/')
 			script_path.erase(0, 1);
 		char *const args[3] = {strdup(script_path.c_str()), strdup(filepath), NULL};
@@ -186,8 +218,8 @@ char	**Response::getEnvCgi() {
 	envMap.insert(std::make_pair("SERVER_PROTOCOL", "HTTP/1.1"));
 	envMap.insert(std::make_pair("SERVER_SOFTWARE", "Webserv/1.0"));
 	envMap.insert(std::make_pair("REDIRECT_STATUS", "200"));
-	// if (_request.getHeader().find("X-Secret-Header-For-Test") != )
-	// 	envMap.insert(std::make_pair("HTTP_X_SECRET_HEADER_FOR_TEST", _requestMap["X-Secret-Header-For-Test"]));}ert(std::make_pair("HTTP_X_SECRET_HEADER_FOR_TEST", conn.headers.substr(conn.headers.find("X-Secret") + 26, conn.headers.find_first_of("\r\n"))));
+	if (_request->getHeaders().find("X-Secret-Header-For-Test") != _request->getHeaders().end())
+		envMap.insert(std::make_pair("HTTP_X_SECRET_HEADER_FOR_TEST", _request->getHeaders().at("X-Secret-Header-For-Test")));
 	char	**env = new char*[envMap.size() + 1];
 	int	j = 0;
 	for (sSMap::const_iterator i = envMap.begin(); i != envMap.end(); i++) {
@@ -201,53 +233,10 @@ char	**Response::getEnvCgi() {
 	return env;
 }
 
-std::string	Response::translateUri( void ) {
-
-	std::string uri;
-	Config		location = _request->getLocation();
-	struct stat stat_data;
-
-	if (location.getLocationName() == "/")
-	{
-		uri = location.getRoot() + _request->getUri();
-		Request::fixUri(uri);
-	}
-	else
-	{
-		uri = _request->getUri();
-		uri.replace(0, location.getLocationName().size(), location.getRoot());
-		Request::fixUri(uri);
-	}
-	for (sVec::const_iterator it = location.getTryFiles().begin(); it != location.getTryFiles().end(); it++)
-	{
-		if (*it == "$uri")
-		{
-  			if (stat(uri.c_str(), &stat_data) == 0)
-  				if (stat_data.st_mode & S_IFREG)
-					return uri;
-		}
-		else if (*it == "$uri/")
-		{
-			for (sVec::const_iterator ite = location.getIndex().begin(); ite != location.getIndex().end(); ite++)
-			{
-				std::string tmp(uri + "/" + *ite);
-				Request::fixUri(tmp);
-				if (stat(tmp.c_str(), &stat_data) == 0)
-  					if (stat_data.st_mode & S_IFREG)
-						return tmp;
-			}
-		}
-		else if (it->find_first_not_of("01234567890") == std::string::npos)
-			throw Error(this, atoi(it->c_str()));
-	}
-	throw Error(this, BAD_REQUEST);
-	return NULL;
-}
-
 void Response::setAllowHeader( void ) {
 
 	std::string	methods;
-	sBMap		tmp = _request->getLocation().getAllowedMethods();
+	sBMap		tmp = _location.getAllowedMethods();
 
 	for (sBMap::const_iterator it = tmp.begin(); it != tmp.end(); it++)
 		if (it->second)

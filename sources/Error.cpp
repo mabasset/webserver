@@ -8,6 +8,7 @@ Response::Error::Error( Response *response, const int &code )
 void	Response::Error::editResponse( std::string const &root, iSMap const &errorPageMap ) {
 
 	switch (_code) {
+		case 204: _response->setStatus("204 No Content"); break ;
 		case 400: _response->setStatus("400 Bad Request"); break ;
 		case 401: _response->setStatus("401 Unauthorized"); break ;
 		case 402: _response->setStatus("402 Payment Required"); break ;
@@ -24,8 +25,7 @@ void	Response::Error::editResponse( std::string const &root, iSMap const &errorP
 	}
 	if (errorPageMap.find(_code) == errorPageMap.end() || _response->getRequest().getMethod() == "HEAD")
 		return ;
-	std::string			uri(root + errorPageMap.at(_code));
-	Request::fixUri(uri);
+	std::string			uri(Request::fixUri(root + errorPageMap.at(_code)));
 	std::ifstream		in(uri.c_str());
 	if (!in.is_open())
 		return ;
