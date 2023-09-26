@@ -65,7 +65,6 @@ void	Request::detectChuncks( const int fd ) {
 				throw std::runtime_error("recv error");
 			buffer[n_bytes] = '\0';
 			buf += buffer;
-			std::cout << buf.size() << std::endl;
 			size -= n_bytes;
 		}
 		_chunks.push_back(buf.substr(0, buf.find("\r\n")));

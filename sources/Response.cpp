@@ -45,8 +45,9 @@ void	Response::commit( void ) const {
 		buffer += it->first + ": " + it->second + "\r\n";
 	if (!_headers.empty())
 		buffer += "\r\n";
+	std::cout << buffer << std::endl;
 	buffer += _body;
-	//std::cout<< buffer << std::endl;
+	std::cout<< _body.size() << std::endl;
 	send(_socket, buffer.c_str(), buffer.size(), 0);
 }
 
@@ -69,7 +70,7 @@ void	Response::handleGet( void ) {
 	}
 	if (!in.is_open())
 		throw Error(this, NOT_FOUND);
-	std::cout << _uri << std::endl;
+
 	std::stringstream ss;
 	ss << in.rdbuf();
 	_body = ss.str();
@@ -104,6 +105,7 @@ void	Response::handlePut( void ) {
 		throw Error(this, FORBIDDEN);
 	for (sVec::const_iterator it = _request->getChunks().begin(); it != _request->getChunks().end(); it++)
 		_body += *it;
+	
 	if (_body.size() == 0)
 		throw Error(this, NO_CONTENT);
 	if (_location.getClientMaxBodySize() != 0 && _body.size() > _location.getClientMaxBodySize())
@@ -134,9 +136,9 @@ std::string	Response::executeCGI(std::string &content){
 	int		fd_out = fileno(out);
 
 	// UNCOMMENT TO PRINT ENV
-	 int i = 0;
-	 while (env[i])
-			printf("%s\n", env[i++]);
+	//  int i = 0;
+	//  while (env[i])
+	// 		printf("%s\n", env[i++]);
 
 	// use tmpFile() instead of pipe() to handle big amount of data
 
@@ -218,8 +220,9 @@ char	**Response::getEnvCgi() {
 	envMap.insert(std::make_pair("SERVER_PROTOCOL", "HTTP/1.1"));
 	envMap.insert(std::make_pair("SERVER_SOFTWARE", "Webserv/1.0"));
 	envMap.insert(std::make_pair("REDIRECT_STATUS", "200"));
-	if (_request->getHeaders().find("X-Secret-Header-For-Test") != _request->getHeaders().end())
-		envMap.insert(std::make_pair("HTTP_X_SECRET_HEADER_FOR_TEST", _request->getHeaders().at("X-Secret-Header-For-Test")));
+	sSMap tmp = _request->getHeaders();
+	if (tmp.find("X-Secret-Header-For-Test") != tmp.end())
+		envMap.insert(std::make_pair("HTTP_X_SECRET_HEADER_FOR_TEST", tmp.at("X-Secret-Header-For-Test")));
 	char	**env = new char*[envMap.size() + 1];
 	int	j = 0;
 	for (sSMap::const_iterator i = envMap.begin(); i != envMap.end(); i++) {
@@ -270,6 +273,11 @@ const Request		&Response::getRequest( void ) const {
 const std::string	&Response::getUri( void ) const {
 
 	return _uri;
+}
+
+const std::string	&Response::getStatus( void ) const {
+
+	return _status;
 }
 
 const sSMap			&Response::getHaders( void ) const {

@@ -1,11 +1,11 @@
-#include "../includes/Response.hpp"
+#include "../includes/Error.hpp"
 
-Response::Error::Error( Response *response, const int &code )
+Error::Error( Response *response, const int &code )
 	: _response(response), _code(code) {
 
 }
 
-void	Response::Error::editResponse( std::string const &root, iSMap const &errorPageMap ) {
+void	Error::editResponse( std::string const &root, iSMap const &errorPageMap ) {
 
 	switch (_code) {
 		case 204: _response->setStatus("204 No Content"); break ;
@@ -23,29 +23,45 @@ void	Response::Error::editResponse( std::string const &root, iSMap const &errorP
 		default:
 			_response->setStatus("500 Internal Server Error");
 	}
-	if (errorPageMap.find(_code) == errorPageMap.end() || _response->getRequest().getMethod() == "HEAD")
+	if (_response->getRequest().getMethod() == "HEAD" || _code == 204)
 		return ;
 	std::string			uri(Request::fixUri(root + errorPageMap.at(_code)));
 	std::ifstream		in(uri.c_str());
-	if (!in.is_open())
-		return ;
+	if (in.is_open())
+	{
+		std::stringstream	ss;
+		ss << in.rdbuf();
+		_response->setBody(ss.str());
+	}
+	else
+		defaultErrorBody();
 	_response->setTypeHeader();
-	std::stringstream	ss;
-	ss << in.rdbuf();
-	_response->setBody(ss.str());
 	_response->setLenghtHeader();
 }
 
-Response    Response::Error::getResponse( void ) const {
+void	Error::defaultErrorBody( void ) {
+
+	std::string	body("<html>\n");
+
+	body += "<head><title>" + _response->getStatus() + "</title></head>\n";
+	body += "<body>\n";
+	body += "<center><h1>" + _response->getStatus() + "</h1></center>\n";
+	body += "<hr><center>webserv</center>\n";
+	body += "</body>\n";
+	body += "</html>\n";
+	_response->setBody(body);
+}
+
+Response    Error::getResponse( void ) const {
 	
 	return *_response;
 }
 
-void	Response::Error::setResponse( Response response ) {
+void	Error::setResponse( Response response ) {
 
 	this->_response = &response;
 }
 
-Response::Error::~Error( void ) {
+Error::~Error( void ) {
 
 }

@@ -84,7 +84,7 @@ int	Server::handleClient(const int fd) {
 	try {
 		response.compile();
 	}
-	catch (Response::Error &e) {
+	catch (Error &e) {
 		e.editResponse(_config.getRoot(), _config.getErrorPage());
 	}
 	response.commit();

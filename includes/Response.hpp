@@ -51,23 +51,22 @@ class Response {
 
 		Response( void );
 
-		void	setAllowHeader( void );
-		void	setTypeHeader( void );
-		void	setLenghtHeader( void );
-	public:
-
-		Response( const Request &request, const int fd);
-		~Response( void );
-
-		void	compile( void );
-		void	commit( void ) const;
-
 		void		handleGet( void );
 		void		handlePut( void );
 		void	 	handlePOST( void );
 		std::string	executeCGI(std::string &content);
 		char		**getEnvCgi();
 
+	public:
+		Response( const Request &request, const int fd);
+		~Response( void );
+
+		void	compile( void );
+		void	commit( void ) const;
+
+		void	setAllowHeader( void );
+		void	setTypeHeader( void );
+		void	setLenghtHeader( void );
 
 		const int			&getSocket( void ) const;
 		const Request		&getRequest( void ) const;
@@ -83,20 +82,6 @@ class Response {
 		void	setHeaders( const sSMap &headers );
 		void	setBody( const std::string &body );
 
-		class Error {
-			private:
-				Response	*_response;
-				int			_code;
-				Error( void );
-			public:
-				Error( Response *response, const int &code );
-				~Error( void );
-				void		editResponse( std::string const &root, iSMap const &errorPageMap );
-				Response	getResponse( void ) const;
-				int			getCode( void ) const;
-				void		setResponse( Response response );
-				void		setCode( const int code );
-		};
 };
 
 #endif

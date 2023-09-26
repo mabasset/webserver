@@ -20,6 +20,7 @@ typedef	std::map<std::string, Config>		sCMap;
 
 # include "Request.hpp"
 # include "Response.hpp"
+# include "Error.hpp"
 
 class Server {
 	private:
