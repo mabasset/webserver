@@ -5,7 +5,7 @@ Server::Server(const Config &config, const sCMap &locationMap)
 	struct sockaddr_in	addr;
 	int					listener;
 
-	listener = socket(AF_INET, SOCK_STREAM, 0);
+	listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	int flags = fcntl(listener, F_GETFL, 0);
 	fcntl(listener, F_SETFL, flags | O_NONBLOCK);
 	if (listener < 0)
@@ -16,9 +16,9 @@ Server::Server(const Config &config, const sCMap &locationMap)
 	int yes = 1;
 	if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) == -1)
 		throw std::runtime_error("Unable to reuse port");
-	if (bind(listener,(struct sockaddr *)&addr, sizeof(addr)) < 0)
+	if (bind(listener,(struct sockaddr *)&addr, sizeof(addr)) != 0)
 		throw std::runtime_error("Unable to bind socket");
-	if (listen(listener, 1000) < 0)
+	if (listen(listener, 1000) == -1)
 		throw std::runtime_error("Listen error");
 	struct pollfd socket;
 	socket.fd = listener;
@@ -42,15 +42,9 @@ void	Server::makePoll(void) {
 		{
 			if (it->fd == _pfds.at(0).fd)
 				newConnection();
-			else
-			{
-				if (handleClient(it->fd))
-				{
-					close(it->fd);
-					_pfds.erase(it);
-				}
-			}
-			it = _pfds.begin();
+			else if (handleClient(it->fd))
+				_pfds.erase(it);
+			break ;
 		}
 	}
 }
@@ -64,6 +58,7 @@ void	Server::newConnection(void) {
 	new_fd = accept(_pfds.at(0).fd, (struct sockaddr *)&client_addr, &sin_size);
 	if (new_fd == -1)
 		throw std::runtime_error("Accept error");
+	std::cout << new_fd << std::endl;
 	struct pollfd socket;
 	socket.fd = new_fd;
 	socket.events = POLLIN;
@@ -79,7 +74,7 @@ int	Server::handleClient(const int fd) {
 	if (_buffer.find("\r\n\r\n") == std::string::npos)
 		return 0;
 	Request request(_buffer, _locationMap, fd);
-	//request.display();
+	request.display();
 	Response response(request, fd);
 	try {
 		response.compile();
@@ -89,6 +84,8 @@ int	Server::handleClient(const int fd) {
 	}
 	response.commit();
 	_buffer.clear();
+	//sleep(1);
+	close(fd);
 	return 1;
 }
 

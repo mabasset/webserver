@@ -45,10 +45,10 @@ void	Response::commit( void ) const {
 		buffer += it->first + ": " + it->second + "\r\n";
 	if (!_headers.empty())
 		buffer += "\r\n";
-	std::cout << buffer << std::endl;
 	buffer += _body;
-	std::cout<< _body.size() << std::endl;
-	send(_socket, buffer.c_str(), buffer.size(), 0);
+	std::cout << _body.size() << std::endl;
+	if (send(_socket, buffer.c_str(), buffer.size(), 0) == -1)
+		throw std::runtime_error("Send error");
 }
 
 void	Response::handleGet( void ) {

@@ -94,7 +94,7 @@ void	Request::display( void ) const {
 	for (sSMap::const_iterator it = _headers.begin(); it != _headers.end(); it++){
 		std::cout<<it->first<<": "<<it->second<<std::endl;
 	}
-	_location.displayConfig();
+	std::cout << "location: " << _location.getLocationName() << std::endl;
 }
 
 Request::Request( const Request &src ) {
