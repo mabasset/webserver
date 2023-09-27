@@ -99,4 +99,6 @@ class Response {
 		};
 };
 
+std::string to_String(int num);
+
 #endif

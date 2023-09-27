@@ -67,7 +67,7 @@ void	Request::detectChuncks( const int fd ) {
 			buf += buffer;
 			size -= n_bytes;
 		}
-		std::cout << buf.size() << std::endl;
+		//std::cout << buf.size() << std::endl;
 		_chunks.push_back(buf.substr(0, buf.find("\r\n")));
 	}
 }

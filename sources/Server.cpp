@@ -36,6 +36,7 @@ void	Server::makePoll(void) {
 		throw std::runtime_error("Poll error");
 	if (pollCount == 0)
 		return ;
+	std::cout<<"poll count:"<<pollCount<<std::endl;
 	for(pVec::iterator it = _pfds.begin(); it != _pfds.end(); it++)
 	{
 		if (it->revents == POLLIN)
@@ -44,13 +45,17 @@ void	Server::makePoll(void) {
 				newConnection();
 			else
 			{
-				if (handleClient(it->fd))
-				{
-					close(it->fd);
-					_pfds.erase(it);
-				}
+				handleClient(it->fd);
+				std::cout<<"close"<<std::endl;
+				close(it->fd);
+				_pfds.erase(it);
+				// if (handleClient(it->fd))
+				// {
+				// 	close(it->fd);
+				// 	_pfds.erase(it);
+				// }
 			}
-			it = _pfds.begin();
+			break ;
 		}
 	}
 }
@@ -74,11 +79,17 @@ void	Server::newConnection(void) {
 int	Server::handleClient(const int fd) {
 	char		c;
 
-	if (recv(fd, &c, 1, 0) < 1)
-		throw std::runtime_error("recv error");
-	_buffer += c;
-	if (_buffer.find("\r\n\r\n") == std::string::npos)
-		return 0;
+	// if (recv(fd, &c, 1, 0) < 1)
+	// 	throw std::runtime_error("recv error");
+	// _buffer += c;
+	// std::cout<<"buffer:"<<_buffer<<std::endl;
+	while (_buffer.find("\r\n\r\n") == std::string::npos) {
+		if (recv(fd, &c, 1, 0) < 1)
+			throw std::runtime_error("recv error");
+		_buffer += c;
+	}
+	//std::cout<<_buffer<<std::endl;
+		//return 0;
 	Request request(_buffer, _locationMap, fd);
 	//request.display();
 	Response response(request, fd);

@@ -87,7 +87,6 @@ void	Response::handlePut( void ) {
 
 	if (_request->getHeaders().at("Transfer-Encoding") != "chunked")
 		throw Error(this, NOT_IMPLEMENTED);
-
 	sVec try_files = _location.getTryFiles();
 	std::ofstream out;
 	struct stat fileStat;
@@ -107,17 +106,17 @@ void	Response::handlePut( void ) {
 		throw Error(this, FORBIDDEN);
 	for (sVec::const_iterator it = _request->getChunks().begin(); it != _request->getChunks().end(); it++)
 		_body += *it;
+	std::cout<<"body_size:"<< _body.size() << " uri:"<< _request->getUri() <<std::endl;
 	if (_body.size() == 0){
-		std::string res = "HTTP/1.1 204 No Content\r\n\r\n";
+		std::string res = "HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n";
 		send(_socket, res.c_str(), res.size(), 0);
 		_status = "NOT";
 		return ;
 		//throw Error(this, NO_CONTENT);
 	}
-		;
 	if (_location.getClientMaxBodySize() != 0 && _body.size() > _location.getClientMaxBodySize()) {
 		std::cout<<"max body:"<<_location.getClientMaxBodySize()<<"body size:"<<_body.size()<<std::endl;
-		std::string res = "HTTP/1.1 413 Request Entity Too Large\r\n\r\n";
+		std::string res = "HTTP/1.1 413 Request Entity Too Large\r\nConnection: close\r\nContent-Length: " + to_String(_body.size()) + "\r\n\r\n" + _body;
 		send(_socket, res.c_str(), res.size(), 0);
 		_status = "NOT";
 		return ;
@@ -125,16 +124,29 @@ void	Response::handlePut( void ) {
 	}
 	if (_request->getMethod() == "POST")
 	{
+		std::cout<<"entro POST"<<_request->getUri();
 		_body = executeCGI(_body);
 		if (_body.find("Status") != std::string::npos)
 			_body.erase(0, _body.find("\n"));
 		if (_body.find("Content-Type") != std::string::npos)
 			_body.erase(0, _body.find("\r\n\r\n") + 4);
+		std::cout<<"body size:"<<_body.size() << std::endl;
+
+		std::string res = "HTTP/1.1 201 Created\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\nContent-Length: " + to_String(_body.size()) + "\r\n\r\n" + _body;
+		send(_socket, res.c_str(), res.size(), 0);
+		_status = "NOT";
+		return ;
+		//_headers["Connection"] = "close";
 	}
 	out << _body;
-	_headers["Content-Location"] = _uri;
-	this->setLenghtHeader();
-	_status = "201 Created";
+	std::string res = "HTTP/1.1 201 Created\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\nContent-Length: " + to_String(_body.size()) + "\r\n\r\n" + _body;
+	send(_socket, res.c_str(), res.size(), 0);
+	std::cout<<res<<std::endl;
+	_status = "NOT";
+	return ;
+	// _headers["Content-Location"] = _uri;
+	// this->setLenghtHeader();
+	// _status = "201 Created";
 }
 
 std::string	Response::executeCGI(std::string &content){
@@ -149,9 +161,9 @@ std::string	Response::executeCGI(std::string &content){
 	int		fd_out = fileno(out);
 
 	// UNCOMMENT TO PRINT ENV
-	 int i = 0;
-	 while (env[i])
-			printf("%s\n", env[i++]);
+	//  int i = 0;
+	//  while (env[i])
+	// 		printf("%s\n", env[i++]);
 
 	// use tmpFile() instead of pipe() to handle big amount of data
 
@@ -332,4 +344,10 @@ void Response::setBody( const std::string &body ) {
 Response::~Response( void ) {
 
 	_headers.clear();
+}
+
+std::string to_String(int num) {
+	std::stringstream ss;
+	ss << num;
+	return ss.str();
 }
