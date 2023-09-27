@@ -66,6 +66,7 @@ void	Server::newConnection(void) {
 		throw std::runtime_error("Accept error");
 	struct pollfd socket;
 	socket.fd = new_fd;
+	std::cout<<"new: "<<new_fd<<std::endl;
 	socket.events = POLLIN;
 	_pfds.push_back(socket);
 }

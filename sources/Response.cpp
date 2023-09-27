@@ -39,14 +39,16 @@ void	Response::compile( ) {
 void	Response::commit( void ) const {
 
 	std::string	buffer("HTTP/1.1 ");
-
+	if (_status == "NOT")
+		return ;
 	buffer += _status + "\r\n";
 	for(sSMap::const_iterator it = _headers.begin(); it != _headers.end(); it++)
-		buffer += it->first + ": " + it->second + "\r\n";
+		buffer += (*it).first + ": " + (*it).second + "\r\n";
 	if (!_headers.empty())
 		buffer += "\r\n";
 	buffer += _body;
-	//std::cout<< buffer << std::endl;
+	//if (buffer.size() < 1000)
+	//	std::cout<< buffer << std::endl;
 	send(_socket, buffer.c_str(), buffer.size(), 0);
 }
 
@@ -75,6 +77,7 @@ void	Response::handleGet( void ) {
 	_body = ss.str();
 	this->setTypeHeader();
 	this->setLenghtHeader();
+	_headers["Connection"] = "close";
 	if (_request->getMethod() == "HEAD")
 		_body.clear();
 	_status = "200 OK";
@@ -104,10 +107,22 @@ void	Response::handlePut( void ) {
 		throw Error(this, FORBIDDEN);
 	for (sVec::const_iterator it = _request->getChunks().begin(); it != _request->getChunks().end(); it++)
 		_body += *it;
-	if (_body.size() == 0)
-		throw Error(this, NO_CONTENT);
-	if (_location.getClientMaxBodySize() != 0 && _body.size() > _location.getClientMaxBodySize())
-		throw Error(this, TOO_LARGE);
+	if (_body.size() == 0){
+		std::string res = "HTTP/1.1 204 No Content\r\n\r\n";
+		send(_socket, res.c_str(), res.size(), 0);
+		_status = "NOT";
+		return ;
+		//throw Error(this, NO_CONTENT);
+	}
+		;
+	if (_location.getClientMaxBodySize() != 0 && _body.size() > _location.getClientMaxBodySize()) {
+		std::cout<<"max body:"<<_location.getClientMaxBodySize()<<"body size:"<<_body.size()<<std::endl;
+		std::string res = "HTTP/1.1 413 Request Entity Too Large\r\n\r\n";
+		send(_socket, res.c_str(), res.size(), 0);
+		_status = "NOT";
+		return ;
+		//throw Error(this, TOO_LARGE);
+	}
 	if (_request->getMethod() == "POST")
 	{
 		_body = executeCGI(_body);
@@ -156,7 +171,8 @@ std::string	Response::executeCGI(std::string &content){
 			uri.erase(pos, 1);
 		const char *filepath = uri.c_str();
 		std::string script_path = _location.getCgiPass();
-		if (script_path.at(0) == '/')
+		
+		if (script_path != "" && script_path.at(0) == '/')
 			script_path.erase(0, 1);
 		char *const args[3] = {strdup(script_path.c_str()), strdup(filepath), NULL};
 		// std::cout<<"args0 "<<args[0]<<std::endl;
@@ -218,8 +234,9 @@ char	**Response::getEnvCgi() {
 	envMap.insert(std::make_pair("SERVER_PROTOCOL", "HTTP/1.1"));
 	envMap.insert(std::make_pair("SERVER_SOFTWARE", "Webserv/1.0"));
 	envMap.insert(std::make_pair("REDIRECT_STATUS", "200"));
-	if (_request->getHeaders().find("X-Secret-Header-For-Test") != _request->getHeaders().end())
-		envMap.insert(std::make_pair("HTTP_X_SECRET_HEADER_FOR_TEST", _request->getHeaders().at("X-Secret-Header-For-Test")));
+	sSMap prova(_request->getHeaders());
+	if (prova["X-Secret-Header-For-Test"] != "")
+		envMap.insert(std::make_pair("HTTP_X_SECRET_HEADER_FOR_TEST", prova["X-Secret-Header-For-Test"]));
 	char	**env = new char*[envMap.size() + 1];
 	int	j = 0;
 	for (sSMap::const_iterator i = envMap.begin(); i != envMap.end(); i++) {
