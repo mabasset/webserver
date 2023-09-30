@@ -56,10 +56,10 @@ void	Config::setRoot(std::string &configStr) {
 	if (pos == std::string::npos || end == std::string::npos || configStr.at(end + 1) != '\n')
 		throw badConfigFile();
 	pos = configStr.find_first_not_of(" \t", pos + 4);
-	if (pos >= end)
-		throw badConfigFile();
 	if (configStr.at(pos) == '/')
 		pos += 1;
+	if (pos >= end)
+		throw badConfigFile();
 	_root = configStr.substr(pos, end - pos);
 	if (_root.find_first_of(" \t") != std::string::npos)
 		throw badConfigFile();
@@ -225,6 +225,8 @@ void	Config::setCgiPass(std::string &configStr) {
 	if (pos == std::string::npos || end == std::string::npos || configStr.at(end + 1) != '\n')
 		throw badConfigFile();
 	pos = configStr.find_first_not_of(" \t", pos + 8);
+	if (configStr.at(pos) == '/')
+		pos += 1;
 	if (pos >= end)
 		throw badConfigFile();
 	_cgi_pass = configStr.substr(pos, end - pos);

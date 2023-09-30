@@ -27,6 +27,8 @@ class Request {
 		Request	&operator=( const Request &rhs );
 		~Request(void);
 
+		void				check( void ) const;
+
 		static std::string	fixUri( std::string uri );
 		void				display( void ) const;
 

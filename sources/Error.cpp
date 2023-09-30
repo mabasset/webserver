@@ -25,13 +25,18 @@ void	Error::editResponse( std::string const &root, iSMap const &errorPageMap ) {
 	}
 	if (_response->getRequest().getMethod() == "HEAD" || _code == 204)
 		return ;
-	std::string			uri(Request::fixUri(root + errorPageMap.at(_code)));
-	std::ifstream		in(uri.c_str());
-	if (in.is_open())
+
+	if (errorPageMap.find(_code) != errorPageMap.end())
 	{
-		std::stringstream	ss;
-		ss << in.rdbuf();
-		_response->setBody(ss.str());
+		std::ifstream		in(Request::fixUri(root + errorPageMap.at(_code)).c_str());
+		if (in.is_open())
+		{
+			std::stringstream	ss;
+			ss << in.rdbuf();
+			_response->setBody(ss.str());
+		}
+		else
+			defaultErrorBody();
 	}
 	else
 		defaultErrorBody();

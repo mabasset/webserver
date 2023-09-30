@@ -26,6 +26,8 @@ void	Response::compile( ) {
 	else
 		_uri.replace(0, _location.getLocationName().size(), _location.getRoot());
 	_uri = Request::fixUri(_uri);
+	this->setTypeHeader();
+	_headers["Connection"] = "close";
 	switch (i) {
 		case HEAD:
 		case GET: this->handleGet(); break ;
@@ -43,12 +45,11 @@ void	Response::commit( void ) const {
 	buffer += _status + "\r\n";
 	for(sSMap::const_iterator it = _headers.begin(); it != _headers.end(); it++)
 		buffer += it->first + ": " + it->second + "\r\n";
-	if (!_headers.empty())
-		buffer += "\r\n";
+	buffer += "\r\n";
+	std::cout << buffer << std::endl;
 	buffer += _body;
 	std::cout << _body.size() << std::endl;
-	if (send(_socket, buffer.c_str(), buffer.size(), 0) == -1)
-		throw std::runtime_error("Send error");
+	send(_socket, buffer.c_str(), buffer.size(), 0);
 }
 
 void	Response::handleGet( void ) {
@@ -85,7 +86,6 @@ void	Response::handlePut( void ) {
 
 	if (_request->getHeaders().at("Transfer-Encoding") != "chunked")
 		throw Error(this, NOT_IMPLEMENTED);
-
 	sVec try_files = _location.getTryFiles();
 	std::ofstream out;
 	struct stat fileStat;
@@ -112,7 +112,7 @@ void	Response::handlePut( void ) {
 		throw Error(this, TOO_LARGE);
 	if (_request->getMethod() == "POST")
 	{
-		_body = executeCGI(_body);
+		executeCGI();
 		if (_body.find("Status") != std::string::npos)
 			_body.erase(0, _body.find("\n"));
 		if (_body.find("Content-Type") != std::string::npos)
@@ -124,82 +124,54 @@ void	Response::handlePut( void ) {
 	_status = "201 Created";
 }
 
-std::string	Response::executeCGI(std::string &content){
-	pid_t	pid;
-	int		std_cpy[2] = { dup(0), dup(1) };
-	char	**env = getEnvCgi();
-	std::string _retBody = "";
+void	Response::executeCGI( void ) {
 
-	FILE*	in = tmpfile();
-	FILE*	out = tmpfile();
-	int		fd_in = fileno(in);
-	int		fd_out = fileno(out);
+	int fd = fileno(tmpfile());
 
-	// UNCOMMENT TO PRINT ENV
-	//  int i = 0;
-	//  while (env[i])
-	// 		printf("%s\n", env[i++]);
+	write(fd, _body.c_str(), _body.size());
+	lseek(fd, 0, SEEK_SET);
 
-	// use tmpFile() instead of pipe() to handle big amount of data
+	char *const	args[3] = {strdup(_location.getCgiPass().c_str()), strdup(_uri.c_str()), NULL};
+	char		**env = getEnvCgi();
 
-	write(fd_in, content.c_str(), content.size());
-	lseek(fd_in, 0, SEEK_SET);
-
-	pid = fork();
-
-	if (pid == -1) {
-		std::cout << "Fork failed" << std::endl;
-		return ("Status: 500\r\n\r\n");
-	}
+	pid_t	pid = fork();
+	if (pid == -1)
+		throw Error(this, SERVER_ERROR);
 	else if (!pid) {
-		std::string uri = _uri;
-		size_t pos = uri.find("//");
-		if (pos != std::string::npos)
-			uri.erase(pos, 1);
-		const char *filepath = uri.c_str();
-		std::string script_path = _location.getCgiPass();
-		if (script_path.at(0) == '/')
-			script_path.erase(0, 1);
-		char *const args[3] = {strdup(script_path.c_str()), strdup(filepath), NULL};
-		// std::cout<<"args0 "<<args[0]<<std::endl;
-		// std::cout<<"args1 "<<args[1]<<std::endl;
-		// std::cout<<"args2 "<<args[2]<<std::endl;
-		dup2(fd_in, 0);
-		dup2(fd_out, 1);
+		dup2(fd, 0);
+		dup2(fd, 1);
 		execve(args[0], args, env);
-		std::cout << "exxxecve failed" << std::endl;
-		write(1, "Status: 500\r\n\r\n", 15);
-		exit (0);
+		throw Error(this, SERVER_ERROR);
 	}
 	else {
 		waitpid(-1, NULL, 0);
-
-		lseek(fd_out, 0, SEEK_SET);
-
-		char	buffer[1024];
-		size_t  dataRead = 0;
-		while ((dataRead = read(fd_out, buffer, sizeof buffer)) > 0) {
+		lseek(fd, 0, SEEK_SET);
+		_body.clear();
+		char	*buffer = (char *) malloc (sizeof(char) * UINT_MAX);
+		size_t	dataRead = 0;
+		while ((dataRead = read(fd, buffer, UINT_MAX)) > 0)
+		{
 			for (size_t i = 0; i < dataRead; i++)
-				_retBody.push_back(buffer[i]);
-			memset(buffer, 0, sizeof buffer);
+				_body.push_back(buffer[i]);
+			memset(buffer, 0, UINT_MAX);
 		}
+		free(buffer);
 	}
-	fclose(in);
-	fclose(out);
-	close(fd_in);
-	close(fd_out);
+	close(fd);
 
-	dup2(std_cpy[0], 0);
-	dup2(std_cpy[1], 1);
-
-	for (short i = 0; env[i] != NULL; i++)
+	for (int i = 0; env[i] != NULL; i++)
 		delete[] env[i];
 	delete[] env;
-	return _retBody;
+
+	for (int i = 0; args[i] != NULL; i++)
+		delete[] args[i];
 }
 
 char	**Response::getEnvCgi() {
 	sSMap envMap;
+	sSMap tmp(_request->getHeaders());
+	std::stringstream	ss;
+	ss << _location.getListen();
 
 	envMap.insert(std::make_pair("AUTH_TYPE", ""));
 	envMap.insert(std::make_pair("CONTENT_LENGTH", ""));
@@ -208,19 +180,18 @@ char	**Response::getEnvCgi() {
 	envMap.insert(std::make_pair("PATH_INFO", _request->getUri()));
 	envMap.insert(std::make_pair("PATH_TRANSLATED", _uri));
 	envMap.insert(std::make_pair("QUERY_STRING", ""));
-	envMap.insert(std::make_pair("REMOTE_ADDR", _request->getHeaders().at("Host")));
+	envMap.insert(std::make_pair("REMOTE_ADDR", tmp.at("Host")));
 	envMap.insert(std::make_pair("REMOTE_HOST", ""));
 	envMap.insert(std::make_pair("REMOTE_IDENT", ""));
 	envMap.insert(std::make_pair("REMOTE_USER", ""));
 	envMap.insert(std::make_pair("REQUEST_METHOD",  _request->getMethod()));
 	envMap.insert(std::make_pair("REQUEST_URI", _request->getUri()));
 	envMap.insert(std::make_pair("SCRIPT_NAME", "ubuntu_cgi_tester"));
-	envMap.insert(std::make_pair("SERVER_NAME", "http://" + _request->getHeaders().at("Host")));
-	envMap.insert(std::make_pair("SERVER_PORT", "8080" /*locatio.serverport()*/));
+	envMap.insert(std::make_pair("SERVER_NAME", "http://" + tmp.at("Host")));
+	envMap.insert(std::make_pair("SERVER_PORT", ss.str()));
 	envMap.insert(std::make_pair("SERVER_PROTOCOL", "HTTP/1.1"));
 	envMap.insert(std::make_pair("SERVER_SOFTWARE", "Webserv/1.0"));
 	envMap.insert(std::make_pair("REDIRECT_STATUS", "200"));
-	sSMap tmp = _request->getHeaders();
 	if (tmp.find("X-Secret-Header-For-Test") != tmp.end())
 		envMap.insert(std::make_pair("HTTP_X_SECRET_HEADER_FOR_TEST", tmp.at("X-Secret-Header-For-Test")));
 	char	**env = new char*[envMap.size() + 1];
@@ -250,7 +221,7 @@ void Response::setAllowHeader( void ) {
 }
 
 void Response::setTypeHeader( void ) {
-	_headers["Content-Type"] = "text/html";
+	_headers["Content-Type"] = "text/html; charset=utf-8";
 }
 
 void Response::setLenghtHeader( ) {

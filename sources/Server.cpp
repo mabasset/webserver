@@ -58,7 +58,6 @@ void	Server::newConnection(void) {
 	new_fd = accept(_pfds.at(0).fd, (struct sockaddr *)&client_addr, &sin_size);
 	if (new_fd == -1)
 		throw std::runtime_error("Accept error");
-	std::cout << new_fd << std::endl;
 	struct pollfd socket;
 	socket.fd = new_fd;
 	socket.events = POLLIN;
@@ -68,15 +67,17 @@ void	Server::newConnection(void) {
 int	Server::handleClient(const int fd) {
 	char		c;
 
-	if (recv(fd, &c, 1, 0) < 1)
-		throw std::runtime_error("recv error");
-	_buffer += c;
-	if (_buffer.find("\r\n\r\n") == std::string::npos)
-		return 0;
+	while (_buffer.find("\r\n\r\n") == std::string::npos)
+	{
+		if (recv(fd, &c, 1, 0) < 1)
+			throw std::runtime_error("recv error");
+		_buffer.push_back(c);
+	}
 	Request request(_buffer, _locationMap, fd);
 	request.display();
 	Response response(request, fd);
 	try {
+		request.check();
 		response.compile();
 	}
 	catch (Error &e) {
@@ -84,7 +85,6 @@ int	Server::handleClient(const int fd) {
 	}
 	response.commit();
 	_buffer.clear();
-	//sleep(1);
 	close(fd);
 	return 1;
 }

@@ -4,6 +4,7 @@
 # include "Server.hpp"
 # include <sys/types.h>
 # include <sys/stat.h>
+# include <climits>
 
 class Request;
 
@@ -51,11 +52,11 @@ class Response {
 
 		Response( void );
 
-		void		handleGet( void );
-		void		handlePut( void );
-		void	 	handlePOST( void );
-		std::string	executeCGI(std::string &content);
-		char		**getEnvCgi();
+		void	handleGet( void );
+		void	handlePut( void );
+		void	handlePOST( void );
+		void	executeCGI( void );
+		char	**getEnvCgi( void );
 
 	public:
 		Response( const Request &request, const int fd);

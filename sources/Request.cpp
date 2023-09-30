@@ -7,7 +7,7 @@ Request::Request( std::string &all, const sCMap &locationMap, const int fd ) {
 
 	pos = all.find_first_of(" ");
 	_method = all.substr(0, pos);
-	pos += 1;
+	pos = all.find_first_not_of(" ", pos);
 	_uri = all.substr(pos, all.find_first_of(" ", pos) - pos);
 	all.erase(0, all.find_first_of("\n") + 1);
 	std::stringstream ss(all);
@@ -17,6 +17,10 @@ Request::Request( std::string &all, const sCMap &locationMap, const int fd ) {
 	if ((_method != "PUT" && _method != "POST") || _headers.at("Transfer-Encoding") != "chunked")
 		return ;
 	this->detectChuncks(fd);
+}
+
+void	Request::check( void ) const {
+
 }
 
 const Config	&Request::detectLocation( const sCMap &locationMap ) {
@@ -40,7 +44,7 @@ const Config	&Request::detectLocation( const sCMap &locationMap ) {
 void	Request::detectChuncks( const int fd ) {
 
 	char		c;
-	size_t		size;
+	int		size;
 
 	while(true)
 	{
@@ -53,20 +57,25 @@ void	Request::detectChuncks( const int fd ) {
 		}
 		std::stringstream	ss(buf.substr(0, buf.find("\r\n")));
 		ss >> std::hex >> size;
-		if (size < 1)
-			return ;
 		buf.clear();
-		size += 3;
-		int	n_bytes;
-		while (buf.find("\r\n") == std::string::npos)
+		size += 2;
+		char	*buffer;
+		int		n_bytes;
+		while (size)
 		{
-			char	buffer[size];
-			if ((n_bytes = recv(fd, buffer, size - 1, 0)) < 1)
+			buffer = (char *) malloc (sizeof(char) * size);
+			if ((n_bytes = recv(fd, buffer, size, 0)) < 1)
+			{
+				free(buffer);
 				throw std::runtime_error("recv error");
-			buffer[n_bytes] = '\0';
-			buf += buffer;
+			}
+			for (int i = 0; i < n_bytes; i++)
+				buf.push_back(buffer[i]);
 			size -= n_bytes;
+			free(buffer);
 		}
+		if (buf.find("\r\n") == 0)
+			break ;
 		_chunks.push_back(buf.substr(0, buf.find("\r\n")));
 	}
 }
