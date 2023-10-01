@@ -36,7 +36,6 @@ void	Server::makePoll(void) {
 		throw std::runtime_error("Poll error");
 	if (pollCount == 0)
 		return ;
-	std::cout<<"poll count:"<<pollCount<<std::endl;
 	for(pVec::iterator it = _pfds.begin(); it != _pfds.end(); it++)
 	{
 		if (it->revents == POLLIN)

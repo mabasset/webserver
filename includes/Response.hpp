@@ -4,7 +4,8 @@
 # include "Server.hpp"
 # include <sys/types.h>
 # include <sys/stat.h>
-
+# include <stdio.h>
+# include <dirent.h>
 class Request;
 
 enum Status {
@@ -38,6 +39,8 @@ enum Method {
 	PUT,
 };
 
+
+
 class Response {
 
 	private:
@@ -64,7 +67,11 @@ class Response {
 
 		void		handleGet( void );
 		void		handlePut( void );
-		void	 	handlePOST( void );
+		//void	 	handlePOST( void );
+		void		handleDelete( void );
+		void		autoindexPage( void );
+		std::string	generateDirectoryListing( void );
+
 		std::string	executeCGI(std::string &content);
 		char		**getEnvCgi();
 
