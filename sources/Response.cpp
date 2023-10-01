@@ -58,7 +58,9 @@ void	Response::handleGet( void ) {
 	std::ifstream in;
 	struct stat fileStat;
 
-	std::cout<<"req"<<_request->getUri()<<std::endl;
+	std::cout<<"return "<<_location.getReturn().first << _location.getReturn().second <<std::endl;
+	if (_location.getReturn().first != 0)
+		return redirectPage();
 	if (_location.getAutoindex() == true && _uri.at(_uri.size() - 1) == '/')
 		return autoindexPage();
 	stat(_uri.c_str(), &fileStat);
@@ -287,7 +289,7 @@ void Response::handleDelete() {
 	}
 }
 
-void Response::autoindexPage(){
+void Response::autoindexPage( void ) {
 	_status = "200 OK";
 	_headers["Content-type"] = "text/html";
 	_body += "<html><head><title>Index of " + _request->getUri() + "</title></head><body><h1>Index of " + _request->getUri() + "</h1><hr><pre>";
@@ -312,6 +314,15 @@ void Response::autoindexPage(){
     }
 
   	_body += "</pre><hr></body></html>";
+}
+
+void Response::redirectPage( void ) {
+	iSPair loc_ret = _location.getReturn();
+	if (loc_ret.first == 301) {
+		_status = "301 Moved Permanently";
+		_headers["Location"] = loc_ret.second;
+	}
+	
 }
 
 void Response::setAllowHeader( void ) {

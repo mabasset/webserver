@@ -70,6 +70,7 @@ class Response {
 		//void	 	handlePOST( void );
 		void		handleDelete( void );
 		void		autoindexPage( void );
+		void		redirectPage( void );
 		std::string	generateDirectoryListing( void );
 
 		std::string	executeCGI(std::string &content);
