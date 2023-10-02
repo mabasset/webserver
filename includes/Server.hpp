@@ -21,6 +21,7 @@ typedef	std::map<std::string, Config>		sCMap;
 # include "Request.hpp"
 # include "Response.hpp"
 # include "Error.hpp"
+# include <ctime>
 
 class Server {
 	private:

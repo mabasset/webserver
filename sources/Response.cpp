@@ -46,9 +46,7 @@ void	Response::commit( void ) const {
 	for(sSMap::const_iterator it = _headers.begin(); it != _headers.end(); it++)
 		buffer += it->first + ": " + it->second + "\r\n";
 	buffer += "\r\n";
-	std::cout << buffer << std::endl;
 	buffer += _body;
-	std::cout << _body.size() << std::endl;
 	send(_socket, buffer.c_str(), buffer.size(), 0);
 }
 
@@ -146,15 +144,11 @@ void	Response::executeCGI( void ) {
 	else {
 		waitpid(-1, NULL, 0);
 		lseek(fd, 0, SEEK_SET);
-		_body.clear();
-		char	*buffer = (char *) malloc (sizeof(char) * UINT_MAX);
-		size_t	dataRead = 0;
-		while ((dataRead = read(fd, buffer, UINT_MAX)) > 0)
-		{
-			for (size_t i = 0; i < dataRead; i++)
-				_body.push_back(buffer[i]);
-			memset(buffer, 0, UINT_MAX);
-		}
+		struct stat st;
+		fstat(fd, &st);
+		char	*buffer = (char *) calloc (st.st_size, sizeof(char));
+		read(fd, buffer, st.st_size);
+		_body = buffer;
 		free(buffer);
 	}
 	close(fd);

@@ -53,27 +53,29 @@ void	Request::detectChuncks( const int fd ) {
 		{
 			if (recv(fd, &c, 1, 0) < 1)
 				throw std::runtime_error("recv error");
-			buf += c;
+			buf.push_back(c);
 		}
 		std::stringstream	ss(buf.substr(0, buf.find("\r\n")));
 		ss >> std::hex >> size;
 		buf.clear();
 		size += 2;
-		char	*buffer;
+		char	*buffer = (char *) calloc (size, sizeof(char));
+		if (buffer == NULL)
+			throw std::runtime_error("calloc error");
 		int		n_bytes;
+		int		i = 0;
 		while (size)
 		{
-			buffer = (char *) malloc (sizeof(char) * size);
-			if ((n_bytes = recv(fd, buffer, size, 0)) < 1)
+			if ((n_bytes = recv(fd, &buffer[i], size, 0)) < 1)
 			{
 				free(buffer);
 				throw std::runtime_error("recv error");
 			}
-			for (int i = 0; i < n_bytes; i++)
-				buf.push_back(buffer[i]);
+			i += n_bytes;
 			size -= n_bytes;
-			free(buffer);
 		}
+		buf = buffer;
+		free(buffer);
 		if (buf.find("\r\n") == 0)
 			break ;
 		_chunks.push_back(buf.substr(0, buf.find("\r\n")));

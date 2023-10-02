@@ -1,3 +1,5 @@
+curl -X POST -H "Transfer-Encoding: chunked" -d "aaaaa" http://localhost:8080/directory/youpi.bla
+
 test:
 	nc localhost 8080
 

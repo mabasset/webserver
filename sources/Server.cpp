@@ -5,9 +5,9 @@ Server::Server(const Config &config, const sCMap &locationMap)
 	struct sockaddr_in	addr;
 	int					listener;
 
-	listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	int flags = fcntl(listener, F_GETFL, 0);
-	fcntl(listener, F_SETFL, flags | O_NONBLOCK);
+	listener = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
+	if (fcntl(listener, F_SETFL, fcntl(listener, F_GETFL, 0) | O_NONBLOCK) == -1)
+		throw std::runtime_error("Unable to make socket non-blocking");
 	if (listener < 0)
 		throw std::runtime_error("Unable to create socket");
 	addr.sin_family = AF_INET;
@@ -24,7 +24,6 @@ Server::Server(const Config &config, const sCMap &locationMap)
 	socket.fd = listener;
 	socket.events = POLLIN;
 	_pfds.push_back(socket);
-	std::cout << "server = " << listener << std::endl;
 }
 
 
@@ -74,7 +73,6 @@ int	Server::handleClient(const int fd) {
 		_buffer.push_back(c);
 	}
 	Request request(_buffer, _locationMap, fd);
-	request.display();
 	Response response(request, fd);
 	try {
 		request.check();
