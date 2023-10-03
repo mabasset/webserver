@@ -63,6 +63,15 @@ sVec	Cluster::divideByServer(const std::string &fileContent) const {
 	return serverBodyVec;
 }
 
+const std::vector<Server>	&Cluster::getServerVec( void ) const {
+
+	return _serverVec;
+}
+
+void	Cluster::getServerVec( const std::vector<Server> &serverVec ) {
+
+	_serverVec = serverVec;
+}
 
 const char *Cluster::wrongFilePath::what() const throw() {
 	return "Wrong file path";

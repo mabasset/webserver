@@ -26,26 +26,34 @@ typedef	std::map<std::string, Config>		sCMap;
 class Server {
 	private:
 
-		pVec		_pfds;
-		Config		_config;
-		sCMap		_locationMap;
-		std::string	_buffer;
+		struct pollfd	_socket;
+		pVec			_pfds;
+		Config			_config;
+		sCMap			_locationMap;
 
 		Server();
 
-		void	newConnection(void);
-		int		handleClient(const int fd);
-		void	handleRequest(const int fd, const Config &location);
 
 	public:
 		Server(const Config &config, const sCMap &locationMap);
 		~Server();
 
-		void	makePoll(void);
+		void	makePoll( void );
+		void	newConnection( void );
+		int		handleClient( const int fd );
+		void	handleRequest( const int fd, const Config &location );
+		
 		void	displayServerConfig(void) const;
 
-		pVec	getPfds();
-	
+		struct pollfd		&getSocket( void );
+		const pVec			&getPfds( void ) const;
+		const Config		&getConfig( void ) const;
+		const sCMap			&getLocationMap( void ) const;
+
+		void			setSocket( const struct pollfd &socket );
+		void			setPfds( const pVec &pfds );
+		void			setConfig( const Config &config );
+		void			setLocationMap( const sCMap &locationMap );
 };
 
 #endif

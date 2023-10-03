@@ -26,8 +26,7 @@ Server::Server(const Config &config, const sCMap &locationMap)
 	_pfds.push_back(socket);
 }
 
-
-void	Server::makePoll(void) {
+void	Server::makePoll( void ) {
 	int pollCount;
 
 	pollCount = poll(&_pfds[0], _pfds.size(), 0);
@@ -64,15 +63,17 @@ void	Server::newConnection(void) {
 }
 
 int	Server::handleClient(const int fd) {
+	std::string	buffer;
 	char		c;
 
-	while (_buffer.find("\r\n\r\n") == std::string::npos)
+	std::cout << fd << std::endl;
+	while (buffer.find("\r\n\r\n") == std::string::npos)
 	{
 		if (recv(fd, &c, 1, 0) < 1)
 			throw std::runtime_error("recv error");
-		_buffer.push_back(c);
+		buffer.push_back(c);
 	}
-	Request request(_buffer, _locationMap, fd);
+	Request request(buffer, _locationMap, fd);
 	Response response(request, fd);
 	try {
 		request.check();
@@ -82,7 +83,6 @@ int	Server::handleClient(const int fd) {
 		e.editResponse(_config.getRoot(), _config.getErrorPage());
 	}
 	response.commit();
-	_buffer.clear();
 	close(fd);
 	return 1;
 }
@@ -97,8 +97,44 @@ void	Server::displayServerConfig(void) const {
 	}
 }
 
-pVec Server::getPfds() {
+struct pollfd	&Server::getSocket( void ) {
+
+	return _socket;
+}
+
+const pVec			&Server::Server::getPfds() const {
+
 	return _pfds;
+}
+
+const Config			&Server::getConfig( void ) const {
+
+	return _config;
+}
+
+const sCMap			&Server::getLocationMap( void ) const {
+
+	return _locationMap;
+}
+
+void			Server::setSocket( const struct pollfd &socket ) {
+
+	_socket = socket;
+}
+
+void			Server::setPfds( const pVec &pfds ) {
+
+	_pfds = pfds;
+}
+
+void			Server::setConfig( const Config &config ) {
+
+	_config = config;
+}
+
+void			Server::setLocationMap( const sCMap &locationMap ) {
+
+	_locationMap = locationMap;
 }
 
 Server::~Server(void) {
