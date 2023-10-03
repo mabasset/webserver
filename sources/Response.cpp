@@ -33,7 +33,7 @@ void	Response::compile( ) {
 		case GET: this->handleGet(); break ;
 		case POST:
 		case PUT: this->handlePut(); break ;
-		// case DELETE: this->handleDelete(); break ;
+		case DELETE: this->handleDelete(); break ;
 		default : throw Error(this, SERVER_ERROR);
 	}
 }
@@ -56,23 +56,36 @@ void	Response::handleGet( void ) {
 	std::ifstream in;
 	struct stat fileStat;
 	stat(_uri.c_str(), &fileStat);
+	if (_location.getReturn().first != 0)
+		return redirectPage();
+	if (_location.getAutoindex() == true && _uri.at(_uri.size() - 1) == '/')
+		return autoindexPage();
 	if (std::find(try_files.begin(), try_files.end(), "$uri") != try_files.end() && !S_ISDIR(fileStat.st_mode))
 		in.open(_uri.c_str());
-	else if (std::find(try_files.begin(), try_files.end(), "$uri/") != try_files.end())
+	_uri += "/";
+	if (!in.is_open() && std::find(try_files.begin(), try_files.end(), "$uri/") != try_files.end())
 	{
 		for (sVec::const_iterator it = _location.getIndex().begin(); it != _location.getIndex().end(); it++)
 		{
-			in.open(Request::fixUri(_uri + "/" + *it).c_str());
+			in.open(Request::fixUri(_uri + *it).c_str());
 			if (in.is_open())
 				break ;
 		}
 	}
+	if (_location.getAutoindex() == true && !in.is_open())
+		return autoindexPage();
 	if (!in.is_open())
 		throw Error(this, NOT_FOUND);
-
 	std::stringstream ss;
 	ss << in.rdbuf();
 	_body = ss.str();
+	if (_request->getHeaders().count("Cookie") == 0){
+		_headers["Set-Cookie"] = gen_random(5);}
+	else {
+		_headers["Cookie"] = _request->getHeaders().at("Cookie");
+		if (_body.find("No cookie") != std::string::npos)
+			_body.replace(_body.find("No cookie"), 9, "Il tuo cookie &eacute;: " + _headers["Cookie"]);
+	}
 	this->setTypeHeader();
 	this->setLenghtHeader();
 	if (_request->getMethod() == "HEAD")
@@ -120,6 +133,60 @@ void	Response::handlePut( void ) {
 	_headers["Content-Location"] = _uri;
 	this->setLenghtHeader();
 	_status = "201 Created";
+}
+
+void Response::handleDelete( void ) {
+	std::string resource = _request->getUri();
+	resource.replace(resource.find(_location.getLocationName()), _location.getLocationName().size(), _location.getRoot());
+	std::cout << resource << std::endl;
+	if (std::remove(resource.c_str()) == 0){
+		std::string res = "HTTP/1.1 200 OK\r\n\r\n";
+		send(_socket, res.c_str(), res.size(), 0);
+		_status = "NOT";
+		return ;
+	}
+	else {
+		std::string res = "HTTP/1.1 403 Forbidden\r\n\r\n";
+		send(_socket, res.c_str(), res.size(), 0);
+		_status = "NOT";
+		return ;
+	}
+}
+
+void Response::autoindexPage( void ){
+	_status = "200 OK";
+	_headers["Content-type"] = "text/html";
+	_body += "<html><head><title>Index of " + _request->getUri() + "</title></head><body><h1>Index of " + _request->getUri() + "</h1><hr><pre>";
+
+	std::string tmp;
+    DIR* dir;
+    struct dirent* ent;
+	tmp = _location.getRoot();
+	tmp.erase(tmp.size() - 1, 1);
+    if ((dir = opendir((tmp + _request->getUri()).c_str())) != NULL) {
+        while ((ent = readdir(dir)) != NULL) {
+            _body += "<a href=\"";
+			_body += _request->getUri();
+			if (_request->getUri().at(_request->getUri().size() - 1) != '/' )
+				_body += "/";
+			 _body += ent->d_name ;
+			  _body += "\">" ;
+			   _body += ent->d_name;
+			    _body += "</a><br>";
+        }
+        closedir(dir);
+    }
+
+  	_body += "</pre><hr></body></html>";
+}
+
+void Response::redirectPage( void ) {
+	iSPair loc_ret = _location.getReturn();
+	if (loc_ret.first == 301) {
+		_status = "301 Moved Permanently";
+		_headers["Location"] = loc_ret.second;
+	}
+
 }
 
 void	Response::executeCGI( void ) {
@@ -199,6 +266,20 @@ char	**Response::getEnvCgi() {
 	}
 	env[j] = NULL;
 	return env;
+}
+
+std::string Response::gen_random(const int len) {
+	static const char alphanum[] =
+		"0123456789"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz";
+	std::string tmp_s;
+	tmp_s.reserve(len);
+
+	for (int i = 0; i < len; ++i) {
+		tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
+	}
+	return tmp_s;
 }
 
 void Response::setAllowHeader( void ) {

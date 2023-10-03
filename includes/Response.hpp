@@ -5,6 +5,9 @@
 # include <sys/types.h>
 # include <sys/stat.h>
 # include <climits>
+# include <stdio.h>
+# include <dirent.h>
+# include <ctime>
 
 class Request;
 
@@ -54,9 +57,13 @@ class Response {
 
 		void	handleGet( void );
 		void	handlePut( void );
-		void	handlePOST( void );
+		//void	handlePOST( void );
+		void	handleDelete( void );
+		void	autoindexPage( void );
+		void	redirectPage( void );
 		void	executeCGI( void );
 		char	**getEnvCgi( void );
+		std::string gen_random( const int len);
 
 	public:
 		Response( const Request &request, const int fd);
