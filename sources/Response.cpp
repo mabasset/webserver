@@ -213,7 +213,16 @@ void	Response::executeCGI( void ) {
 		lseek(fd, 0, SEEK_SET);
 		struct stat st;
 		fstat(fd, &st);
-		char	*buffer = (char *) calloc (st.st_size, sizeof(char));
+		size_t	size = st.st_size;
+		size_t	n_bytes;
+		size_t	i = 0;
+		char	*buffer = (char *) calloc (size, sizeof(char));
+		while (size)
+		{
+			n_bytes = read(fd, &buffer[i], size);
+			i += n_bytes;
+			size -= n_bytes;
+		}
 		read(fd, buffer, st.st_size);
 		_body = buffer;
 		free(buffer);

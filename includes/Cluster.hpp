@@ -13,7 +13,7 @@ typedef	std::map<std::string, Config> sCMap;
 class Cluster {
 	private:
 		std::vector<Server>	_serverVec;
-		
+
 		Cluster(void);
 
 	public:
@@ -23,6 +23,10 @@ class Cluster {
 		sVec	divideByServer(const std::string &fileContent) const;
 
 		void	startListening(void);
+
+		const std::vector<Server>	&getServerVec( void ) const;
+
+		void	getServerVec( const std::vector<Server> &serverVec );
 
 		struct	wrongFilePath : public std::exception {
 			virtual const char *what() const throw();
