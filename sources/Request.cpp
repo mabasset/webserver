@@ -163,5 +163,4 @@ void	Request::setChunks( const sVec &chunks ) {
 }
 
 Request::~Request(void) {
-
 }

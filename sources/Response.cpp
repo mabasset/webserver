@@ -84,6 +84,12 @@ void	Response::handleGet( void ) {
 	std::stringstream ss;
 	ss << in.rdbuf();
 	_body = ss.str();
+	if (_request->getHeaders().count("Cookie") == 0){
+		_headers["Set-Cookie"] = gen_random(5);}
+	else {
+		_headers["Cookie"] = _request->getHeaders().at("Cookie");
+		_body.replace(_body.find("No cookie"), 9, "Il tuo cookie &eacute;: " + _headers["Cookie"]);
+	}
 	this->setTypeHeader();
 	this->setLenghtHeader();
 	_headers["Connection"] = "close";
@@ -323,6 +329,20 @@ void Response::redirectPage( void ) {
 		_headers["Location"] = loc_ret.second;
 	}
 	
+}
+
+std::string Response::gen_random(const int len) {
+	static const char alphanum[] =
+		"0123456789"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz";
+	std::string tmp_s;
+	tmp_s.reserve(len);
+
+	for (int i = 0; i < len; ++i) {
+		tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
+	}
+	return tmp_s;
 }
 
 void Response::setAllowHeader( void ) {

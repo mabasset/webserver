@@ -6,6 +6,8 @@
 # include <sys/stat.h>
 # include <stdio.h>
 # include <dirent.h>
+# include <ctime>
+
 class Request;
 
 enum Status {
@@ -71,7 +73,7 @@ class Response {
 		void		handleDelete( void );
 		void		autoindexPage( void );
 		void		redirectPage( void );
-		std::string	generateDirectoryListing( void );
+		std::string gen_random( const int len);
 
 		std::string	executeCGI(std::string &content);
 		char		**getEnvCgi();
