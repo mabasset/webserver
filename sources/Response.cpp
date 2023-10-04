@@ -27,7 +27,6 @@ void	Response::compile( ) {
 		_uri.replace(0, _location.getLocationName().size(), _location.getRoot());
 	_uri = Request::fixUri(_uri);
 	this->setTypeHeader();
-	_headers["Connection"] = "close";
 	switch (i) {
 		case HEAD:
 		case GET: this->handleGet(); break ;
@@ -58,8 +57,6 @@ void	Response::handleGet( void ) {
 	stat(_uri.c_str(), &fileStat);
 	if (_location.getReturn().first != 0)
 		return redirectPage();
-	if (_request->getUri() == "/favicon.ico")
-		return getIcon();
 	if (_location.getAutoindex() == true && _uri.at(_uri.size() - 1) == '/')
 		return autoindexPage();
 	if (std::find(try_files.begin(), try_files.end(), "$uri") != try_files.end() && !S_ISDIR(fileStat.st_mode))
@@ -191,28 +188,26 @@ void Response::redirectPage( void ) {
 
 }
 
-void Response::getIcon( void ) {
-	std::ifstream choco;
-	choco.open("fake_site/choco.png");
-	if (!choco.is_open()) {
-		_status = "404 Not Found";
-		return ;
-	}
-	std::string b( (std::istreambuf_iterator<char>(choco) ),
-                       (std::istreambuf_iterator<char>()    ) );
-	_body = b;
-	_headers["Content-Type"] = "image/png";
-}
-
 void	Response::executeCGI( void ) {
 
+	
 	int fd = fileno(tmpfile());
 
 	write(fd, _body.c_str(), _body.size());
 	lseek(fd, 0, SEEK_SET);
 
 	char *const	args[3] = {strdup(_location.getCgiPass().c_str()), strdup(_uri.c_str()), NULL};
-	char		**env = getEnvCgi();
+
+	char		*env[5];
+	env[0] = strdup(("PATH_INFO=" + _request->getUri()).c_str());
+	env[1] = strdup("REQUEST_METHOD=POST");
+	env[2] = strdup("SERVER_PROTOCOL=HTTP/1.1");
+	sSMap tmp(_request->getHeaders());
+	if (tmp.find("X-Secret-Header-For-Test") != tmp.end())
+		env[3] = strdup(("HTTP_X_SECRET_HEADER_FOR_TEST" + tmp.at("X-Secret-Header-For-Test")).c_str());
+	else
+		env[3] = NULL;
+	env[4] = NULL;
 
 	pid_t	pid = fork();
 	if (pid == -1)
@@ -220,6 +215,7 @@ void	Response::executeCGI( void ) {
 	else if (!pid) {
 		dup2(fd, 0);
 		dup2(fd, 1);
+		close(fd);
 		execve(args[0], args, env);
 		throw Error(this, SERVER_ERROR);
 	}
@@ -231,14 +227,13 @@ void	Response::executeCGI( void ) {
 		size_t	size = st.st_size;
 		size_t	n_bytes;
 		size_t	i = 0;
-		char	*buffer = (char *) calloc (size, sizeof(char));
+		char	*buffer = (char *) calloc (size + 1, sizeof(char));
 		while (size)
 		{
 			n_bytes = read(fd, &buffer[i], size);
 			i += n_bytes;
 			size -= n_bytes;
 		}
-		read(fd, buffer, st.st_size);
 		_body = buffer;
 		free(buffer);
 	}
@@ -246,50 +241,9 @@ void	Response::executeCGI( void ) {
 
 	for (int i = 0; env[i] != NULL; i++)
 		delete[] env[i];
-	delete[] env;
 
 	for (int i = 0; args[i] != NULL; i++)
 		delete[] args[i];
-}
-
-char	**Response::getEnvCgi() {
-	sSMap envMap;
-	sSMap tmp(_request->getHeaders());
-	std::stringstream	ss;
-	ss << _location.getListen();
-
-	envMap.insert(std::make_pair("AUTH_TYPE", ""));
-	envMap.insert(std::make_pair("CONTENT_LENGTH", ""));
-	envMap.insert(std::make_pair("CONTENT_TYPE", "application/x-www-form-urlencoded"));
-	envMap.insert(std::make_pair("GATEWAY_INTERFACE", "CGI/1.1"));
-	envMap.insert(std::make_pair("PATH_INFO", _request->getUri()));
-	envMap.insert(std::make_pair("PATH_TRANSLATED", _uri));
-	envMap.insert(std::make_pair("QUERY_STRING", ""));
-	envMap.insert(std::make_pair("REMOTE_ADDR", tmp.at("Host")));
-	envMap.insert(std::make_pair("REMOTE_HOST", ""));
-	envMap.insert(std::make_pair("REMOTE_IDENT", ""));
-	envMap.insert(std::make_pair("REMOTE_USER", ""));
-	envMap.insert(std::make_pair("REQUEST_METHOD",  _request->getMethod()));
-	envMap.insert(std::make_pair("REQUEST_URI", _request->getUri()));
-	envMap.insert(std::make_pair("SCRIPT_NAME", "ubuntu_cgi_tester"));
-	envMap.insert(std::make_pair("SERVER_NAME", "http://" + tmp.at("Host")));
-	envMap.insert(std::make_pair("SERVER_PORT", ss.str()));
-	envMap.insert(std::make_pair("SERVER_PROTOCOL", "HTTP/1.1"));
-	envMap.insert(std::make_pair("SERVER_SOFTWARE", "Webserv/1.0"));
-	envMap.insert(std::make_pair("REDIRECT_STATUS", "200"));
-	if (tmp.find("X-Secret-Header-For-Test") != tmp.end())
-		envMap.insert(std::make_pair("HTTP_X_SECRET_HEADER_FOR_TEST", tmp.at("X-Secret-Header-For-Test")));
-	char	**env = new char*[envMap.size() + 1];
-	int	j = 0;
-	for (sSMap::const_iterator i = envMap.begin(); i != envMap.end(); i++) {
-		std::string	element = i->first + "=" + i->second;
-		env[j] = new char[element.size() + 1];
-		env[j] = strcpy(env[j], (const char*)element.c_str());
-		//std::cout<<"riga env:"<<env[j]<<std::endl;
-		j++;
-	}
-	env[j] = NULL;
-	return env;
 }
 
 std::string Response::gen_random(const int len) {
