@@ -1,3 +1,6 @@
+to test
+	curl -X POST -H "Content-Type: plain/text" --data "BODY IS HERE" http://127.0.0.1:8080
+
 curl -X POST -H "Transfer-Encoding: chunked" -d "aaaaa" http://localhost:8080/directory/youpi.bla
 
 test:

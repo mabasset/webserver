@@ -58,6 +58,8 @@ void	Response::handleGet( void ) {
 	stat(_uri.c_str(), &fileStat);
 	if (_location.getReturn().first != 0)
 		return redirectPage();
+	if (_request->getUri() == "/favicon.ico")
+		return getIcon();
 	if (_location.getAutoindex() == true && _uri.at(_uri.size() - 1) == '/')
 		return autoindexPage();
 	if (std::find(try_files.begin(), try_files.end(), "$uri") != try_files.end() && !S_ISDIR(fileStat.st_mode))
@@ -189,6 +191,19 @@ void Response::redirectPage( void ) {
 
 }
 
+void Response::getIcon( void ) {
+	std::ifstream choco;
+	choco.open("fake_site/choco.png");
+	if (!choco.is_open()) {
+		_status = "404 Not Found";
+		return ;
+	}
+	std::string b( (std::istreambuf_iterator<char>(choco) ),
+                       (std::istreambuf_iterator<char>()    ) );
+	_body = b;
+	_headers["Content-Type"] = "image/png";
+}
+
 void	Response::executeCGI( void ) {
 
 	int fd = fileno(tmpfile());
@@ -284,7 +299,7 @@ std::string Response::gen_random(const int len) {
 		"abcdefghijklmnopqrstuvwxyz";
 	std::string tmp_s;
 	tmp_s.reserve(len);
-
+	srand(time(NULL));
 	for (int i = 0; i < len; ++i) {
 		tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
 	}

@@ -61,6 +61,7 @@ class Response {
 		void	handleDelete( void );
 		void	autoindexPage( void );
 		void	redirectPage( void );
+		void	getIcon( void );
 		void	executeCGI( void );
 		char	**getEnvCgi( void );
 		std::string gen_random( const int len);
