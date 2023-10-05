@@ -158,23 +158,23 @@ void Response::autoindexPage( void ){
 	_body += "<html><head><title>Index of " + _request->getUri() + "</title></head><body><h1>Index of " + _request->getUri() + "</h1><hr><pre>";
 
 	std::string tmp;
-    DIR* dir;
-    struct dirent* ent;
+	DIR* dir;
+	struct dirent* ent;
 	tmp = _location.getRoot();
 	tmp.erase(tmp.size() - 1, 1);
-    if ((dir = opendir((tmp + _request->getUri()).c_str())) != NULL) {
-        while ((ent = readdir(dir)) != NULL) {
-            _body += "<a href=\"";
+	if ((dir = opendir((tmp + _request->getUri()).c_str())) != NULL) {
+		while ((ent = readdir(dir)) != NULL) {
+			_body += "<a href=\"";
 			_body += _request->getUri();
 			if (_request->getUri().at(_request->getUri().size() - 1) != '/' )
 				_body += "/";
-			 _body += ent->d_name ;
-			  _body += "\">" ;
-			   _body += ent->d_name;
-			    _body += "</a><br>";
-        }
-        closedir(dir);
-    }
+			_body += ent->d_name ;
+			_body += "\">" ;
+			_body += ent->d_name;
+				_body += "</a><br>";
+		}
+		closedir(dir);
+	}
 
   	_body += "</pre><hr></body></html>";
 }
@@ -204,7 +204,7 @@ void	Response::executeCGI( void ) {
 	env[2] = strdup("SERVER_PROTOCOL=HTTP/1.1");
 	sSMap tmp(_request->getHeaders());
 	if (tmp.find("X-Secret-Header-For-Test") != tmp.end())
-		env[3] = strdup(("HTTP_X_SECRET_HEADER_FOR_TEST" + tmp.at("X-Secret-Header-For-Test")).c_str());
+		env[3] = strdup(("HTTP_X_SECRET_HEADER_FOR_TEST=" + tmp.at("X-Secret-Header-For-Test")).c_str());
 	else
 		env[3] = NULL;
 	env[4] = NULL;

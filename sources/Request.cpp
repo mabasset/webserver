@@ -16,6 +16,7 @@ Request::Request( std::string &all, const sCMap &locationMap, const int fd ) {
 	_location = this->detectLocation(locationMap);
 	if ((_method != "PUT" && _method != "POST") || _headers.at("Transfer-Encoding") != "chunked")
 		return ;
+	//clock_t	start = clock();
 	this->detectChuncks(fd);
 }
 
@@ -59,7 +60,7 @@ void	Request::detectChuncks( const int fd ) {
 		ss >> std::hex >> size;
 		buf.clear();
 		size += 2;
-		char	*buffer = (char *) calloc (size, sizeof(char));
+		char	*buffer = (char *) calloc (size + 1, sizeof(char));
 		if (buffer == NULL)
 			throw std::runtime_error("calloc error");
 		int		n_bytes;

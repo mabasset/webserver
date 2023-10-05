@@ -12,7 +12,7 @@ Config::Config()
 }
 
 Config::Config(std::string &serverBody)
-	: _listen(8080), _client_max_body_size(0) {
+	: _listen(8080), _client_max_body_size(0), _autoindex(false) {
 	std::string	line;
 	std::string	directive;
 	size_t		pos;

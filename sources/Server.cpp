@@ -74,10 +74,12 @@ int	Server::handleClient(const int fd) {
 		buffer.push_back(c);
 	}
 	Request request(buffer, _locationMap, fd);
+	//std::cout << "request: " << clock() - start << std::endl;
 	Response response(request, fd);
 	try {
-		request.check();
+		//clock_t	start = clock();
 		response.compile();
+		//std::cout << "response: " << clock() - start << std::endl;
 	}
 	catch (Error &e) {
 		e.editResponse(_config.getRoot(), _config.getErrorPage());
